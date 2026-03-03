@@ -1,0 +1,15 @@
+offen:
+IDs der Spieler scrapen
+Stats aus dem Web (siehe relevante Daten)
+
+
+Decision Tree
+Geld der anderen
+Interface
+Bilder für Interface ggf.
+ 
+
+erledigt:
+Einloggen
+Markt + mein Team
+Mein Geld 

@@ -1,0 +1,16 @@
+(schauen nach Marktwert in Kickbase und auf LigaInsider oder so)
+Position
+Punkte durchschnitt
+Startelf
+Werte insgesammt für entsprechende Position (Abv: zweikämpfe > Tore)
+durchschnitt Spielzeit + wie oft er generell spielt (bsp 1/2 Spieler -> 50%)
+Verlutzungen 
+aktuelle Performance (letzten Spiele)
+Performance Verein
+Performace im Verhältnis zur Vereinsperformance
+Wert definieren wie Preis / avr. Punkte
+kommende Gegner
+Konkurrenz im Kader / Rotation
+(Trainer)
+
+Wieviel Geld haben die anderen aktuell ohne Gebote (100 Mio Kaderwert + 50 Mio zum Start + Transfergewinn)

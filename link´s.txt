@@ -1,0 +1,9 @@
+onefootball: https://onefootball.com/de/spieler/harry-kane-3148/stats Stats eines Spielers 
+https://onefootball.com/de/team/hamburger-sv-157 Teamform letzten 5 Spiele sichtbar
+
+kicker: https://www.kicker.de/bundesliga/einsaetze-historie Tabellen verschiedener Art (Tore, Einsätze, normale...), 
+https://www.kicker.de/hamburger-sv/team-statistiken/bundesliga/2025-26 Statistik Hamburg
+
+LigaInsider: https://www.ligainsider.de/eintracht-frankfurt/3/ prognose Aufstellung frankfurt
+https://www.ligainsider.de/kevin-trapp_636/ Spieler mit Bilanz, Nummer am Ende noch Bedeutung herausfinden
+Fussballdaten: https://www.fussballdaten.de/person/peter-gulacsi/ Beispiel für ein Spieler -> leicht auf andere anwendbar
