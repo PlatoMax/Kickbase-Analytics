@@ -1,5 +1,4 @@
 offen:
-IDs der Spieler scrapen
 Stats aus dem Web (siehe relevante Daten)
 
 

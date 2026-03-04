@@ -5,11 +5,13 @@ import json
 import re
 import unicodedata
 
+from database import clear_teams, save_teams
+
 
 
 
 # remove umlauts and special characters from names (Badé -> Bade)
-def normalizeName(name):
+def normalize_Name(name):
     name = name.lower().replace("-", " ").replace("ł", "l").replace("ø", "o")
     name = unicodedata.normalize('NFKD', name).encode('ASCII', 'ignore').decode('utf-8')
     return name
@@ -68,7 +70,15 @@ if(sourceOne.status_code == 200 and sourceInsider.status_code == 200):
             teamLinksDict["Werder Bremen"].append(teamlinkInsider)
         else:
             print(f"{teamName} not found in Dictonary Teamlinks")
-
+        
+    clear_teams() # Datenbank mit Teams leeren
+    
+    for team in teamLinksDict: # Teams in Datenbank speichern 
+        if(len(teamLinksDict[team]) == 2):
+            save_teams(team, teamLinksDict[team][0], teamLinksDict[team][1])
+        else: 
+            print(f"{team} has no link for onefootball or ligaInsider")
+    
 # single Team:
     players = []
     for teamName, links in teamLinksDict.items():
@@ -83,7 +93,7 @@ if(sourceOne.status_code == 200 and sourceInsider.status_code == 200):
                 name = player.get("aria-label")
                 # remove numbers in names:
                 name2 = re.sub(r'\s*\(\d+\)', '', name)
-                name2 = normalizeName(name2)
+                name2 = normalize_Name(name2)
                 LinkOnefootball = f"https://onefootball.com/" + player.get("href") + "/stats"
                 playerLinkDict[name2] = LinkOnefootball
 
@@ -105,7 +115,7 @@ if(sourceOne.status_code == 200 and sourceInsider.status_code == 200):
                         nameInsider = firstNameInsider.strip() + " " + lastNameInsider.strip()
                         
                         # compare names by splitting them into sets of words
-                        liCleanName = normalizeName(nameInsider)
+                        liCleanName = normalize_Name(nameInsider)
                         liNameSet = set(liCleanName.lower().split())
 
                         matched = False

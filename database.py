@@ -70,3 +70,21 @@ def create_tables():
 if __name__ == "__main__":
     create_tables()
     print("Tabellen erstellt!")
+
+def save_teams(name, link_onefootball, link_liga_insider): 
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+                   INSERT INTO teams (name, link_onefootball, link_liga_insider)
+                   VALUES (?, ?, ?)
+                   """, (name, link_onefootball, link_liga_insider))
+    conn.commit()
+    conn.close()
+
+def clear_teams(): 
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM teams") 
+    conn.commit()
+    conn.close()
+

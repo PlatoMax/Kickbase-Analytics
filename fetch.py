@@ -1,142 +1,74 @@
-import json
-import math
-from zoneinfo import ZoneInfo
 import requests
-from datetime import datetime, timezone
 from dotenv import load_dotenv
-import os 
+import os
 
-
-# Anmeldedaten aus .env Datei laden
 load_dotenv()
-email = os.getenv("EMAIL")
-password = os.getenv("PASSWORD")
-api_url = "https://api.kickbase.com/v4"
 
+API_URL = "https://api.kickbase.com/v4"
 
-# Login-Request
-response = requests.post(
-    "https://api.kickbase.com/v4/user/login",
-    json={"em": email, "pass": password, "loy": False, "rep": {}}
-)
-currentCookies = {"kkstrauth": response.cookies.get("kkstrauth")}
+def login():
+    # Einloggen und Token + League-ID zurückgeben
+    email = os.getenv("EMAIL")
+    password = os.getenv("PASSWORD")
 
-# Token extrahieren
-if response.status_code == 200:
+    response = requests.post(
+        f"{API_URL}/user/login",
+        json={"em": email, "pass": password, "loy": False, "rep": {}}
+    )
+
+    if response.status_code != 200:
+        print("Login fehlgeschlagen!")
+        return None, None, None
+
     data = response.json()
     token = data.get("tkn")
-    leagueId = data["srvl"][0]["id"]
+    league_id = data["srvl"][0]["id"]
+    cookies = {"kkstrauth": response.cookies.get("kkstrauth")}
 
-# Spieler auf dem Markt abfragen
-PlayerOnMarket = requests.get(
-    f"{api_url}/leagues/{leagueId}/market",
-    headers={"tkn": token, "Accept":"application/json"}, cookies = currentCookies
-)
+    return token, league_id, cookies
 
 
+def get_market(token, league_id, cookies):
+    # Spieler auf dem Transfermarkt abfragen
+    response = requests.get(
+        f"{API_URL}/leagues/{league_id}/market",
+        headers={"tkn": token, "Accept": "application/json"},
+        cookies=cookies
+    )
 
-# Spieler auf dem Transferarkt in JSON speichern
-data = PlayerOnMarket.json()
-result = []
-if PlayerOnMarket.status_code == 200:
-    for player in data["it"]:  
-        pos = player["pos"]
-        if pos == 1:
-            pos = "TW"
-        elif pos == 2:
-            pos = "ABW"
-        elif pos == 3:
-            pos = "MF"
-        elif pos == 4:
-            pos = "ST"
-        starts = player["prob"]
-        if starts == 1:
-            starts = "sicher"
-        elif starts == 2:
-            starts = "wird erwartet"
-        elif starts == 3:
-            starts = "unsicher"
-        elif starts == 4:
-            starts = "unwahrscheinlich"
-        elif starts == 5:
-            starts = "ausgeschlossen"
-        mvTrend = player["mvt"]
-        if mvTrend > 0:
-            mvTrend = "steigend"
-        elif mvTrend < 0:
-            mvTrend = "fallend"
-        else:
-            mvTrend = "stabil" 
-            
-        result.append([player["fn"] + " " + player["n"], player["prc"], math.floor(player["exs"] / 60), player.get("ap",0), pos, starts, mvTrend]) 
-sortedResult = sorted(result, key=lambda x: x[2])
+    if response.status_code != 200:
+        print("Markt-Abfrage fehlgeschlagen!")
+        return []
 
-with open("currentMarket.json", "w") as file:
-    json.dump(sortedResult, file, indent=4)
-
-# mein aktuelles Team abfragen 
-myTeam = requests.get(
-    f"{api_url}/leagues/{leagueId}/squad",
-    headers={"tkn": token, "Accept":"application/json"}, cookies = currentCookies
-)
-# mein aktuelles Geld abfragen
-# Mein Geld plus Geld der anderen Manager
-myMoney = requests.get(
-    f"{api_url}/leagues/{leagueId}/me/budget",
-    headers={"tkn": token, "Accept":"application/json"}, cookies = currentCookies
-)
-data = myTeam.json()
-result = []
-for player in data["it"]:  
-        pos = player["pos"]
-        if pos == 1:
-            pos = "TW"
-        elif pos == 2:
-            pos = "ABW"
-        elif pos == 3:
-            pos = "MF"
-        elif pos == 4:
-            pos = "ST"
-        starts = player.get("prob", 5)
-        if starts == 1:
-            starts = "sicher"
-        elif starts == 2:
-            starts = "wird erwartet"
-        elif starts == 3:
-            starts = "unsicher"
-        elif starts == 4:
-            starts = "unwahrscheinlich"
-        elif starts == 5:
-            starts = "ausgeschlossen"
-        mvTrend = player["mvt"]
-        if mvTrend > 0:
-            mvTrend = "steigend"
-        elif mvTrend < 0:
-            mvTrend = "fallend"
-        else:
-            mvTrend = "stabil"    
-        result.append([player["n"], player["mv"], player.get("ap",0), pos, starts, mvTrend])
-data = myMoney.json()
-moneyAfterPurnchase = data.get("pbaa", data["b"])
-moneyAfterSells = data["pbas"]
-budget = data["b"]
-result.append(["Geld nach Käufen % s" %moneyAfterPurnchase, "Geld nach Verkäufen % s" %moneyAfterSells, "aktuelles Budget % s" %budget])
-
-# myTeam und aktuelles Geld in JSON speichern
-with open("myTeam.json", "w") as file:
-    json.dump(result, file, indent=4)
+    return response.json().get("it", [])
 
 
-# ID´s der anderen Manager scrapen (fortsetzten wenn andere zum testen in Liga)
-managerIDs = []
-manager = requests.get(
-    f"{api_url}/leagues/:leagueId/settings/managers",
-    headers={"tkn": token, "Accept":"application/json"}, cookies = currentCookies
+def get_squad(token, league_id, cookies):
+    # Eigenes Team abfragen
+    response = requests.get(
+        f"{API_URL}/leagues/{league_id}/squad",
+        headers={"tkn": token, "Accept": "application/json"},
+        cookies=cookies
+    )
 
-)
+    if response.status_code != 200:
+        print("Squad-Abfrage fehlgeschlagen!")
+        return []
+
+    return response.json().get("it", [])
 
 
+def get_budget(token, league_id, cookies):
+    # Budget abfragen
+    response = requests.get(
+        f"{API_URL}/leagues/{league_id}/me/budget",
+        headers={"tkn": token, "Accept": "application/json"},
+        cookies=cookies
+    )
 
-# alle aktuellen Daten von Spielern auf dem Markt plus meinem Team scrapen
+    if response.status_code != 200:
+        print("Budget-Abfrage fehlgeschlagen!")
+        return {}
 
-# analysieren mittels Decissiontree und in MarktAnalyse.json speichern
+    return response.json()
+
