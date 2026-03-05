@@ -21,7 +21,7 @@ def login():
 
     data = response.json()
     token = data.get("tkn")
-    league_id = data["srvl"][0]["id"]
+    league_id = data["srvl"][1]["id"] # die 1 da ich die 2 Liga in der ich bin nehmen will. Kann bei Bedarf angepasst werden (Nummer der Liga - 1, z.B. oberste Liga = 0)
     cookies = {"kkstrauth": response.cookies.get("kkstrauth")}
 
     return token, league_id, cookies
