@@ -1,10 +1,9 @@
 import requests
 from dotenv import load_dotenv
 import os
+from config import API_URL
 
 load_dotenv()
-
-API_URL = "https://api.kickbase.com/v4"
 
 def login():
     # Einloggen und Token + League-ID zurückgeben

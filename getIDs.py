@@ -4,11 +4,26 @@ from bs4 import BeautifulSoup
 import json
 import re
 import unicodedata
+from config import API_URL
+from database import clear_teams, save_teams, clear_players, save_players, get_team_id_by_name
+from fetch import login
 
-from database import clear_teams, save_teams
+token, league_id, cookies = login()
 
-
-
+def get_player_id_and_position(token, cookies, name):
+    response = requests.get(
+        f"{API_URL}/competitions/1/players/search?query={name}",     # competition_id 1 = Bundesliga
+        headers={"tkn": token, "Accept": "application/json"},
+        cookies=cookies
+    )
+    data = response.json()
+    
+    if data.get("it"):
+        kickbase_id = data["it"][0].get("id")
+        position = data["it"][0].get("pos")
+        return kickbase_id, position
+    
+    return None, None
 
 # remove umlauts and special characters from names (Badé -> Bade)
 def normalize_Name(name):
@@ -138,10 +153,9 @@ if(sourceOne.status_code == 200 and sourceInsider.status_code == 200):
                             if(matched):
                                 players.append({
                                     "Name": nameInsider, 
+                                    "Team": teamName,
                                     "Playerlink Onefootball": playerLinkDict[ofName],
-                                    "Teanlink Onefootball" : links[0], 
                                     "Playerlink LigaInsider": pLinkIsider, 
-                                    "Teanlink LigaInsider": links[1] 
                                 })
                                 matched = True
                                 break
@@ -149,6 +163,12 @@ if(sourceOne.status_code == 200 and sourceInsider.status_code == 200):
                         if not matched:
                             print(f"{nameInsider} not found in Dictonary")
 
-    with open("ids.json", "w") as file:
-        json.dump(players, file, indent=4)
+    clear_players() # Datenbank mit Spielern leeren
+    for player in players: # Spieler in Datenbank schreiben
+        team_id = get_team_id_by_name(player["Team"])
+        kickbase_id, position = get_player_id_and_position(token, cookies, player["Name"])
+        save_players(kickbase_id, player["Name"], team_id, position, 
+                    player["Playerlink Onefootball"], player["Playerlink LigaInsider"])
+
+
 

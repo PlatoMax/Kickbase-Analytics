@@ -88,3 +88,26 @@ def clear_teams():
     conn.commit()
     conn.close()
 
+def save_players(kickbase_id, name, team_id, position, link_onefootball, link_liga_insider):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+                     INSERT INTO players (kickbase_id, name, team_id, position, link_onefootball, link_liga_insider)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """, (kickbase_id, name, team_id, position, link_onefootball, link_liga_insider))
+    conn.commit()
+    conn.close()
+
+def clear_players():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM players") 
+    conn.commit()
+    conn.close()
+
+def get_team_id_by_name(name):
+    conn = get_connection
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM TEAMS WHERE NAME = ?", (name))
+    result = cursor.fetchone()
+    conn.close()
