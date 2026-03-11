@@ -106,8 +106,8 @@ def clear_players():
     conn.close()
 
 def get_team_id_by_name(name):
-    conn = get_connection
+    conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM TEAMS WHERE NAME = ?", (name))
+    cursor.execute("SELECT id FROM teams WHERE NAME = ?", (name,))
     result = cursor.fetchone()
     conn.close()

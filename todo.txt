@@ -1,14 +1,7 @@
-offen:
-Stats aus dem Web (siehe relevante Daten)
-
-
-Decision Tree
-Geld der anderen
-Interface
-Bilder für Interface ggf.
- 
-
-erledigt:
-Einloggen
-Markt + mein Team
-Mein Geld 
+- nach möglichen Refactoring schauen
+- Nutzen von Onefootball überlegen 
+- Scraper Stats Kickbase beenden + get_cur_stats (avg Punkte, avg Spielzeit aktuell abrufen)
+- Verknüpfung der Infos von LigaInsider zu den einezelnen Spieltagen mti Stats aus Kickbase herstellen
+- gelbe und rote Karten einbauen
+- Daten in DB player_stats + team_stats einpflegen damit diese später zum trainieren genutzt werden können
+- next_opponent

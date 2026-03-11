@@ -1,7 +1,7 @@
 import requests
 from dotenv import load_dotenv
 import os
-from config import API_URL
+from scrape.config import API_URL
 
 load_dotenv()
 
@@ -70,4 +70,5 @@ def get_budget(token, league_id, cookies):
         return {}
 
     return response.json()
+
 
