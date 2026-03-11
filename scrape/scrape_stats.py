@@ -211,9 +211,7 @@ def get_player_goals_and_grades(name, season_kickbase):
     
 # ---------------------------------------------------------------------------------------------------------------------------
 # Kickbase: 
-
-#Notiz: get_player_market_values und get_market_value_at_date, get_player_performance haben Test bestanden
-# 
+ 
 
 def get_player_info(token, cookies, player_id):
     response = requests.get(
@@ -326,11 +324,6 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
             })
     return performance
 
-def match_LiData_with_KbData(performance_kb, performance_li):
-    matched_data = []
-    # wenn beide Arrays leer -> Spieler hat nicht gespielt in der Saison -> nichts zur DB hinzufügen 
-
-
 def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, position):
     merged_stats = []
     # Ziel: Ein einheitlicher Datensatz pro Spieltag, der alle relevanten Informationen enthält
@@ -392,12 +385,4 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
     return merged_stats
 
 
-# Ergänzen: integrieren das nur die neuen Spieltage betrachtet werden bei player_performance, performance mit Kickbase verbinden, 
-
-#Prüfe letzte Einträge in DB → weißt, wo du weitermachen musst
-# Kickbase-Daten holen (für alle Saisons, als Dict/Array)
-# Für jede Saison:
-# Hole die LigaInsider-Stats über die Funktion (mit Saison als Parameter um in URL einzufügen)
-# Für jeden Spieltag:
-# Finde im Kickbase-Array den passenden Eintrag (erster Eintrag (Index 0) = Spieltag 1)
 # Erstelle den Datensatz (Eintrag DB): immer mit Spieltag & Datum (Spieltag für LigaInsider, Datum für Kickbase um später nach letzten Eintrag in DB abzugleichen
