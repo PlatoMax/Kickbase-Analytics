@@ -71,17 +71,7 @@ def get_gameday_number_LI(row):
     return None
 
 
-def get_min_season_LI():
-    current_year = datetime.now().year
-    if datetime.now().month >= 8:
-        season_start = current_year
-    else:
-        season_start = current_year - 1
-    
-    min_year = season_start - 2  # 3 Saisons: aktuelle + 2 davor
-    return f"{min_year}/{str(min_year + 1)[-2:]}"
-
-def kickbase_season_to_ligainsider(season_kickbase): # Beispiel: 2025/2026 -> 2025/26
+def kickbase_season_to_ligainsider(season_kickbase): # Beispiel: 2025/2026 -> 2025-2026
     return season_kickbase.replace("/", "-") 
 
 def scrape_player_stats_LI(name, position, season_kickbase): 
@@ -131,9 +121,32 @@ def scrape_player_stats_LI(name, position, season_kickbase):
         
         values = row.find_all('div', class_='data_column text-center')
         for i, val in enumerate(values):
-            span = val.find('span')
-            text = span.get_text() if span else "-"
-            stat[columns[i]] = text if text != "-" else 0
+            if i < len(columns): 
+                col_name = columns[i]
+                small = val.find('small')
+                span = val.find('span')
+                
+                
+                if small: # <small>-Tag (z.B. "(47/56)")
+                    text = small.get_text().strip(" ()") 
+                    
+                    if "/" in text: # Bruch bekommen z.B. bei erfolgreiche Pässe
+                        erfolg, gesamt = text.split("/")
+                        stat[col_name] = int(erfolg) if erfolg.isdigit() else 0                        
+                        stat[f"{col_name}_gesamt"] = int(gesamt) if gesamt.isdigit() else 0
+                    else:
+                        stat[col_name] = 0
+                        stat[f"{col_name}_gesamt"] = 0
+                        
+                
+                elif span: # <span>-Wert (z.B. "2" oder "69%")
+                    text = span.get_text().replace("%", "").strip()
+                    if text != "-" and text.isdigit():
+                        stat[col_name] = int(text)
+                    else:
+                        stat[col_name] = 0
+                else: 
+                    stat[col_name] = 0
         
         stats.append(stat)    
     return stats  
@@ -212,6 +225,14 @@ def get_player_goals_and_grades(name, season_kickbase):
 # ---------------------------------------------------------------------------------------------------------------------------
 # Kickbase: 
  
+def get_min_season_kickbase(): #letzte zu betrachtende Saison im Kickbase-Format z.B. 2025/2026
+    current_year = datetime.now().year
+    if datetime.now().month >= 8:
+        season_start = current_year
+    else:
+        season_start = current_year - 1
+    
+    return f"{season_start-1}/{str(season_start)}"
 
 def get_player_info(token, cookies, player_id):
     response = requests.get(
@@ -296,7 +317,14 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
             minutes_str = game.get("mp") # Spielzeit
             minutes = int(minutes_str.replace("'", "")) if minutes_str else 0
             points_per_minute = point / minutes if minutes > 0 else None
-            points_per_value = get_market_value_at_date(market_values, date) / minutes if minutes > 0 else None
+
+            current_market_value = get_market_value_at_date(market_values, date)
+
+            if minutes > 0 and current_market_value is not None and current_market_value > 0:
+                points_per_value = point / current_market_value 
+            else:
+                points_per_value = None
+
             t1 = game.get("t1")
             t2 = game.get("t2")
             t1g = game.get("t1g")
@@ -315,6 +343,7 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
                 "points": point,
                 "minutes": minutes,
                 "points_per_minute": points_per_minute,
+                "market_value": current_market_value,
                 "points_per_value": points_per_value,
                 "team1": t1,
                 "team2": t2,
@@ -328,6 +357,8 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
     merged_stats = []
     # Ziel: Ein einheitlicher Datensatz pro Spieltag, der alle relevanten Informationen enthält
     for i in range(len(stats_kickbase)): # für jeden Spieltag 
+        if(stats_kickbase[i].get("market_value") is None): # Spieltage ohne Marktwert überspringen
+                continue
         base_stat = {
             "season": stats_kickbase[i]["season"],
             "matchday": stats_kickbase[i]["matchday"],
@@ -335,6 +366,7 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
             "points": stats_kickbase[i]["points"],
             "minutes": stats_kickbase[i]["minutes"],
             "points_per_minute": stats_kickbase[i]["points_per_minute"],
+            "market_value": stats_kickbase[i]["market_value"],
             "points_per_value": stats_kickbase[i]["points_per_value"],
             "team1": stats_kickbase[i]["team1"],
             "team2": stats_kickbase[i]["team2"],
@@ -351,38 +383,48 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
         }
         if position == 1: # Torwart
             base_stat.update({
-                "status": stats_ligainsider[i]["status"],
-                "abgewehrte_schuesse": stats_ligainsider[i]["abgewehrte_schuesse"],
-                "paraden": stats_ligainsider[i]["paraden"],
-                "weisse_weste": stats_ligainsider[i]["weisse_weste"],
-                "strafraum_beherrschung": stats_ligainsider[i]["strafraum_beherrschung"],
-                "abgewehrte_elfmeter": stats_ligainsider[i]["abgewehrte_elfmeter"],
-                "grosschancen_pariert": stats_ligainsider[i]["grosschancen_pariert"],
-                "fehler_vor_gegentor": stats_ligainsider[i]["fehler_vor_gegentor"]
+                "status": stats_ligainsider[i].get("status", "unbekannt"),
+                "abgewehrte_schuesse": stats_ligainsider[i].get("abgewehrte_schuesse", 0),
+                "schuesse_gesamt": stats_ligainsider[i].get("abgewehrte_schuesse_gesamt", 0),
+                "paraden": stats_ligainsider[i].get("paraden", 0),
+                "weisse_weste": stats_ligainsider[i].get("weisse_weste", 0),
+                "strafraum_beherrschung": stats_ligainsider[i].get("strafraum_beherrschung", 0),
+                "strafraum_beherrschung_gesamt": stats_ligainsider[i].get("strafraum_beherrschung_gesamt", 0),
+                "abgewehrte_elfmeter": stats_ligainsider[i].get("abgewehrte_elfmeter", 0),
+                "elfmeter_gesamt": stats_ligainsider[i].get("abgewehrte_elfmeter_gesamt", 0),
+                "grosschancen_pariert": stats_ligainsider[i].get("grosschancen_pariert", 0),
+                "grosschancen_gesamt": stats_ligainsider[i].get("grosschancen_pariert_gesamt", 0),
+                "fehler_vor_gegentor": stats_ligainsider[i].get("fehler_vor_gegentor", 0)
             })  
         else: # Feldspieler
             base_stat.update({
-                "status": stats_ligainsider[i]["status"],
-                "erfolgreiche_paesse": stats_ligainsider[i]["erfolgreiche_paesse"],
-                "gewonnene_zweikaempfe": stats_ligainsider[i]["gewonnene_zweikaempfe"],
-                "gewonnene_luftkaempfe": stats_ligainsider[i]["gewonnene_luftkaempfe"],
-                "erfolgreiche_tacklings": stats_ligainsider[i]["erfolgreiche_tacklings"],
-                "begangene_fouls": stats_ligainsider[i]["begangene_fouls"],
-                "geklaerte_baelle": stats_ligainsider[i]["geklaerte_baelle"],
-                "abgefangene_baelle": stats_ligainsider[i]["abgefangene_baelle"],
-                "balleroberungen": stats_ligainsider[i]["balleroberungen"],
-                "ballverluste": stats_ligainsider[i]["ballverluste"],
-                "erfolgreiche_dribblings": stats_ligainsider[i]["erfolgreiche_dribblings"],
-                "torschuss_vorlagen": stats_ligainsider[i]["torschuss_vorlagen"],
-                "kreierte_grosschancen": stats_ligainsider[i]["kreierte_grosschancen"],
-                "schuesse_aufs_tor": stats_ligainsider[i]["schuesse_aufs_tor"],
-                "schussgenauigkeit": stats_ligainsider[i]["schussgenauigkeit"],
-                "fehler_vor_gegentor": stats_ligainsider[i]["fehler_vor_gegentor"],
-                "geblockte_baelle": stats_ligainsider[i]["geblockte_baelle"]
+                "status": stats_ligainsider[i].get("status", "unbekannt"),
+                "erfolgreiche_paesse": stats_ligainsider[i].get("erfolgreiche_paesse", 0),
+                "paesse_gesamt": stats_ligainsider[i].get("erfolgreiche_paesse_gesamt", 0),              
+                "gewonnene_zweikaempfe": stats_ligainsider[i].get("gewonnene_zweikaempfe", 0),
+                "gewonnene_zweikaempfe_gesamt": stats_ligainsider[i].get("gewonnene_zweikaempfe_gesamt", 0),
+                "gewonnene_luftkaempfe": stats_ligainsider[i].get("gewonnene_luftkaempfe", 0),
+                "gewonnene_luftkaempfe_gesamt": stats_ligainsider[i].get("gewonnene_luftkaempfe_gesamt", 0),
+                "erfolgreiche_tacklings": stats_ligainsider[i].get("erfolgreiche_tacklings", 0),
+                "tacklings_gesamt": stats_ligainsider[i].get("erfolgreiche_tacklings_gesamt", 0),
+                "begangene_fouls": stats_ligainsider[i].get("begangene_fouls", 0),
+                "geklaerte_baelle": stats_ligainsider[i].get("geklaerte_baelle", 0),
+                "abgefangene_baelle": stats_ligainsider[i].get("abgefangene_baelle", 0),
+                "balleroberungen": stats_ligainsider[i].get("balleroberungen", 0),
+                "ballverluste": stats_ligainsider[i].get("ballverluste", 0),
+                "erfolgreiche_dribblings": stats_ligainsider[i].get("erfolgreiche_dribblings", 0),
+                "dribblings_gesamt": stats_ligainsider[i].get("erfolgreiche_dribblings_gesamt", 0),
+                "torschuss_vorlagen": stats_ligainsider[i].get("torschuss_vorlagen", 0),
+                "kreierte_grosschancen": stats_ligainsider[i].get("kreierte_grosschancen", 0),
+                "schuesse_aufs_tor": stats_ligainsider[i].get("schuesse_aufs_tor", 0),
+                "schussgenauigkeit": stats_ligainsider[i].get("schussgenauigkeit", 0),
+                "schussgenauigkeit_gesamt": stats_ligainsider[i].get("schussgenauigkeit_gesamt", 0),
+                "fehler_vor_gegentor": stats_ligainsider[i].get("fehler_vor_gegentor", 0),
+                "geblockte_baelle": stats_ligainsider[i].get("geblockte_baelle", 0)
             })
         merged_stats.append(base_stat)
         
     return merged_stats
 
 
-# Erstelle den Datensatz (Eintrag DB): immer mit Spieltag & Datum (Spieltag für LigaInsider, Datum für Kickbase um später nach letzten Eintrag in DB abzugleichen
+# Ergänzen: check was der letzte Eintrag in der DB war und ab da dann weitermachen mit den neueren. 
