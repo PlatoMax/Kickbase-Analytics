@@ -301,7 +301,7 @@ def save_player_stats_gk(player_id, stat):
     conn.close()
 
 
-def get_last_matchday(player_id):
+def get_last_matchday_fieldplayer(player_id):
     '''In Datenbank schauen was der letzte Spieltag war, Output: (date, season)'''
     conn = sqlite3.connect('kickbase.db')
     cursor = conn.cursor()
