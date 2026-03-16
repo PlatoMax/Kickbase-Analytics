@@ -2,3 +2,4 @@
 .env
 kickbase.db
 .DS_Store
+__pycache__/

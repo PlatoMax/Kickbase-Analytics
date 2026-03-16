@@ -299,3 +299,15 @@ def save_player_stats_gk(player_id, stat):
     
     conn.commit()
     conn.close()
+
+
+def get_last_matchday(player_id):
+    '''In Datenbank schauen was der letzte Spieltag war, Output: (date, season)'''
+    conn = sqlite3.connect('kickbase.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT date, season FROM player_stats_field WHERE player_id = ? ORDER BY date DESC LIMIT 1", (player_id))
+    result = cursor.fetchone()
+    if result:
+        return result[0], result[1]  # [date, season]
+    else:
+        return None, None

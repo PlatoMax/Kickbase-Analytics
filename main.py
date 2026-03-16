@@ -3,6 +3,7 @@ from scrape.getIDs import get_player_id_and_position
 from scrape.config import API_URL
 from scrape.fetch import login
 from scrape.scrape_stats import *
+from database import get_last_matchday
 
 start_time = time.time()
 total_entries_databank = 0
@@ -35,5 +36,5 @@ dauer_in_minuten = (end_time - start_time) / 60
 print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minuten:.2f} Minuten gespeichert.")
 
 
+
 # Fall Spieler nicht in Kickbase (bsp. Yannick Eduardo) einbauen
-# Ergänzen: nur Daten wo auch ein Marktwert vorhanden ist scrapen also letzten 365 Tage

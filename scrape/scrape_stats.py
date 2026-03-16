@@ -353,6 +353,9 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
             })
     return performance
 
+# ----------------------------------------------------------------------------------------------------------------------------
+# Daten kombinieren
+
 def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, position):
     merged_stats = []
     # Ziel: Ein einheitlicher Datensatz pro Spieltag, der alle relevanten Informationen enthält
@@ -427,4 +430,3 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
     return merged_stats
 
 
-# Ergänzen: check was der letzte Eintrag in der DB war und ab da dann weitermachen mit den neueren. 
