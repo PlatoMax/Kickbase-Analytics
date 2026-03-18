@@ -353,6 +353,13 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
             })
     return performance
 
+#-----------------------------------------------------------------------------------------------------------------------------
+# Teams
+
+# def get_table_standig_after_matchday(season, matchday):
+
+# def get_next_opponent(team, season, matchday):
+
 # ----------------------------------------------------------------------------------------------------------------------------
 # Daten kombinieren
 
@@ -430,3 +437,4 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
     return merged_stats
 
 
+# für Tabelle und so https://www.openligadb.de nutzen

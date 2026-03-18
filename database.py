@@ -35,9 +35,10 @@ def create_tables():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             kickbase_id TEXT,
             name TEXT,
+            team_name TEXT,
             team_id INTEGER,
             position INTEGER,
-            link_onefootball TEXT,
+            link_kickbase TEXT,
             link_liga_insider TEXT,
             FOREIGN KEY (team_id) REFERENCES teams(id)
         )

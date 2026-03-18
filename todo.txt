@@ -1,7 +1,5 @@
 - nach möglichen Refactoring schauen
-- Nutzen von Onefootball überlegen 
-- Scraper Stats Kickbase beenden + get_cur_stats (avg Punkte, avg Spielzeit aktuell abrufen)
-- Verknüpfung der Infos von LigaInsider zu den einezelnen Spieltagen mti Stats aus Kickbase herstellen
-- gelbe und rote Karten einbauen
+- Nutzen von Onefootball überlegen -> vermutlich aussortieren
+- scraper transfermarkt.de für z.B. Tabelle nach dem 11. Spieltag
 - Daten in DB player_stats + team_stats einpflegen damit diese später zum trainieren genutzt werden können
 - next_opponent
