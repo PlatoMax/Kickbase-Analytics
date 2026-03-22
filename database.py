@@ -6,6 +6,7 @@ def get_connection():
 
 def create_tables(): 
     conn = get_connection()
+    conn.execute("PRAGMA foreign_keys = ON;")
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -29,7 +30,6 @@ def create_tables():
             FOREIGN KEY (team_id) REFERENCES teams(id)
         )
     """)
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS players (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,7 +38,6 @@ def create_tables():
             team_name TEXT,
             team_id INTEGER,
             position INTEGER,
-            link_kickbase TEXT,
             link_liga_insider TEXT,
             FOREIGN KEY (team_id) REFERENCES teams(id)
         )
@@ -175,23 +174,6 @@ def clear_teams():
     conn.commit()
     conn.close()
 
-def save_players(kickbase_id, name, team_id, position, link_onefootball, link_liga_insider):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-                    INSERT INTO players (kickbase_id, name, team_id, position, link_onefootball, link_liga_insider)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                        """, (kickbase_id, name, team_id, position, link_onefootball, link_liga_insider))
-    conn.commit()
-    conn.close()
-
-def clear_players():
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM players") 
-    conn.commit()
-    conn.close()
-
 def get_team_id_by_name(name):
     conn = get_connection()
     cursor = conn.cursor()
@@ -312,3 +294,39 @@ def get_last_matchday_fieldplayer(player_id):
         return result[0], result[1]  # [date, season]
     else:
         return None, None
+    
+
+def clear_players():
+    """Leert die Tabelle komplett, behält aber die Struktur bei."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM players")
+        conn.commit() 
+        print("Tabelle 'players' wurde erfolgreich für die neue Saison geleert.")
+    except sqlite3.Error as e:
+        print(f"Fehler beim Leeren der Tabelle: {e}")
+    finally:
+        conn.close()
+    
+
+def save_players(matches): 
+    if not matches: 
+        print("Keine Matches")
+        return 
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    sql = """
+        INSERT INTO players (kickbase_id, name, team_name, team_id, position, link_liga_insider)
+        VALUES (:kickbase_id, :name, :team_name, :team_id, :position, :link_liga_insider)
+        """
+    try: 
+        cursor.executemany(sql, matches)
+        conn.commit()
+    
+    except sqlite3.Error as e:
+        print(f'Fehler beim einfügügen der Spieler: {e}')
+    
+    finally:
+        conn.close()

@@ -80,6 +80,11 @@ def scrape_player_stats_LI(name, position, season_kickbase):
     cursor = conn.cursor()
     cursor.execute("SELECT link_liga_insider FROM players WHERE name = ?", (name,))
     link_tupel = cursor.fetchone() #fetchone returned ein tupel, daher in str umwandeln 
+    
+    if link_tupel is None:
+        print(f'Für Spieler {name} nichts in Datenbank gefunden')
+        return []
+    
     link_str = link_tupel[0] 
     URL = f'{link_str}bundesliga_daten/saison-{season_ligaInsider}/'
     responose = requests.get(URL)

@@ -1,16 +1,44 @@
-# Tool schreiben um ID's der Spieler scrapen
 import requests
 from bs4 import BeautifulSoup
 import json
 import re
 import unicodedata
+from rapidfuzz import fuzz
 from scrape.config import API_URL
 from database import clear_teams, save_teams, clear_players, save_players, get_team_id_by_name
 from scrape.fetch import login
 
 token, league_id, cookies = login()
 
-def get_player_id_and_position(token, cookies, name):
+TEAMS_MAPPING = { 
+#   Kickbase: Ligainsider
+    "Bayern": "FC Bayern München",
+    "Dortmund": "Borussia Dortmund",
+    "Hoffenheim": "TSG Hoffenheim",
+    "Stuttgart": "VfB Stuttgart",
+    "Leipzig": "RB Leipzig",
+    "Leverkusen": "Bayer 04 Leverkusen",
+    "Frankfurt": "Eintracht Frankfurt",
+    "Freiburg": "SC Freiburg",
+    "Union Berlin": "1. FC Union Berlin",
+    "Augsburg": "FC Augsburg",
+    "Hamburg": "Hamburger SV",
+    "M'gladbach": "Borussia Mönchengladbach",
+    "Mainz": "1. FSV Mainz 05",
+    "Köln": "1. FC Köln",
+    "Bremen": "SV Werder Bremen",
+    "St. Pauli": "FC St. Pauli", 
+    "Wolfsburg": "VfL Wolfsburg",
+    "Heidenheim": "1. FC Heidenheim",
+}
+
+ALIAS_MAP = {
+    # Can be used if the current logic don´t fidn a match betweeen the Kickbase an LigaInsider name. 
+    # structure:
+    # Name Kickbase : Name LigaInsider
+}
+
+def get_player_id_and_position_kickbase(token, cookies, name):
     response = requests.get(
         f"{API_URL}/competitions/1/players/search?query={name}",     # competition_id 1 = Bundesliga
         headers={"tkn": token, "Accept": "application/json"},
@@ -32,26 +60,6 @@ def normalize_Name(name):
     return name
 
 
-ALIAS_MAP = {
-    "kim min jae": "minjae kim",
-    "alex grimaldo": "alejandro grimaldo",
-    "ignacio fernandez" : "equi fernández",
-    "jeong woo yeong": "wooyeong jeong",
-    "chukwubuike adamu": "junior adamu",
-    "k. l. hansen": "kristoffer lund",
-    "yannick engelhardt": "yannik engelhardt",
-    "nathan n`goumou minpole": "nathan ngoumou",
-    "manuel pherai": "immanuel pherai",
-    "vinicius souza": "vini souza",
-    "mohamed el amine amoura": "mohamed amoura",
-    "dimitris giannoulis": "dimitrios giannoulis",
-    "kade. anton": "anton kade",
-    "emmanouil saliakas": "manolis saliakas",
-    "conor metcalfe": "connor metcalfe",
-    "leart paqarada": "leart pacarada",
-    "philipp mwene": "phillipp mwene",
-    "lee jae sung": "jaesung lee",
-}
 
 # updated Version jeden Spieler in Datenbank eintragen
 # verwendete Quellen: Kickbase, LigaInsider.
@@ -64,7 +72,7 @@ ALIAS_MAP = {
 #    "team_name": "FC Bayern", "link": "https://...", Für Kickbase: "id": "12345","position": "Abwehr" }
 
 
-def get_all_teams(token, cookies):
+def get_all_teams_kickbase(token, cookies):
     """Alle Teams aus der Tabelle bekommen"""
 
     teams = []
@@ -90,8 +98,7 @@ def get_all_teams(token, cookies):
 def fetch_kickbase_players(token, cookies):
     '''Holt alle Spieler aus Kickbase'''
     players = []
-    teams = get_all_teams(token, cookies)
-
+    teams = get_all_teams_kickbase(token, cookies)
     for team in teams:
         team_name = team.get('team_name')
         team_id = team.get('team_id')
@@ -173,5 +180,48 @@ def fetch_ligainsider_players():
 
 
 
-def match_players(list_kickbase, list_ligainsider, alias_map):
+def match_players(list_kickbase, list_ligainsider, ALIAS_MAP, TEAMS_MAPPING): 
     '''Erstellt Matching zwischhen den verschiedenen Quellen'''
+    matches = []
+    for player_kb in list_kickbase:
+        matched_li_player = None
+        name_kb = player_kb["player_name"]
+        normalized_name_kb = player_kb["normalized_name"]
+        team_kb = player_kb["team_name"]
+        team_li = TEAMS_MAPPING[team_kb]
+
+        if name_kb in ALIAS_MAP: # Level 3: Alias Map
+                name_li = ALIAS_MAP[name_kb]
+                print(f"Match gefunden in Alias Map! Kickbase: {name_kb}, Ligainsider: {name_li} \n\n") #\n\n just for the debugging to see easilier if it works
+                matched_li_player = name_li
+
+        filtered_players_li = []
+        filtered_players_li = [player_li for player_li in list_ligainsider if player_li["team_name"] == team_li]
+
+        
+
+        for cur in filtered_players_li: 
+            normalized_name_li = cur["normalized_name"]
+        
+            if normalized_name_li in normalized_name_kb: # Level 2: Namen normalisiert sind gleich
+                matched_li_player = cur
+            
+            else: # Level 1, Fuzzy
+                score_fuzzy = fuzz.partial_ratio(normalized_name_kb, normalized_name_li)
+                if(score_fuzzy > 80):
+                    matched_li_player = cur
+
+        if matched_li_player: 
+                # print("Match gefunden, Name KB: ", name_kb, " Name LI: ", cur["original_name"])
+                matches.append({
+                    "kickbase_id": player_kb["player_id"],
+                    "name": name_kb,
+                    "team_name": team_kb,
+                    "team_id": player_kb["team_id"],
+                    "position": player_kb["position"],
+                    "link_liga_insider": matched_li_player["link"]
+                })
+
+        else: 
+            print(f'{name_kb} nicht gefunden. Normalized: {normalized_name_kb} Team: {team_kb} \n\n\n') #3x \n just so you can find the missmatches in the terminal
+    return matches
