@@ -18,19 +18,25 @@ neuer_id, neuer_pos = get_player_id_and_position_kickbase(token, cookies, spiele
 
 # print(get_market_value_at_date(get_player_market_values(token, cookies, neuer_id), "2026-03-06"))
 
-player_info = get_player_info(token, cookies, neuer_id)
+# player_info = get_player_info(token, cookies, neuer_id)
 # print(get_player_info(token, cookies, neuer_id))
 # name = player_info["name"]
-team_id = player_info["team"]
+# team_id = player_info["team"]
 # print("Name: ", name, " Team ID:" , team_id)
+
 season = "2024/2025"
-stats_kickbase = get_player_performance_kb(token, cookies, neuer_id, team_id, season)
+# stats_kickbase = get_player_performance_kb(token, cookies, neuer_id, team_id, season)
 # print(stats_kickbase)
 
+# print(kb_season_to_openLiga_season(season))
+openL_season = kb_season_to_openLiga_season(season)
+
+print(get_data_matchdays("2025"))
+
 position = 3
-stats_ligainsider = scrape_player_stats_LI(spielername, position, season)       
-goals_and_grades = get_player_goals_and_grades(spielername, season)
-print(merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, position))
+# stats_ligainsider = scrape_player_stats_LI(spielername, position, season)       
+# goals_and_grades = get_player_goals_and_grades(spielername, season)
+# print(merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, position))
 
 # list_ligainsider = fetch_ligainsider_players()
 # print(get_all_teams_kickbase(token, cookies))
@@ -60,3 +66,4 @@ print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minute
 
 
 # mehr try except Blöcke einbauen für mögliche Fehler 
+# Teams Datenbank für jeden Spieltag Infos scrapen + in DB schreiben

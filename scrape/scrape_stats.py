@@ -254,9 +254,11 @@ def get_player_info(token, cookies, player_id):
     firstname = data.get("fn", "")
     lastname = data.get("ln", "")
     name = firstname + " " + lastname
+    position = data.get("pos")
     return {
         "name": name,
-        "team": data.get("tid")
+        "team": data.get("tid"),
+        "position": position
     }
     
 
@@ -366,7 +368,7 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
 # def get_next_opponent(team, season, matchday):
 
 # ----------------------------------------------------------------------------------------------------------------------------
-# Daten kombinieren
+# Daten Kickbase + LigaInsider kombinieren
 
 def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, position):
     merged_stats = []
@@ -442,4 +444,107 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
     return merged_stats
 
 
-# für Tabelle und so https://www.openligadb.de nutzen
+#---------------------------------------------------------------------------------------------------------------------------------------------------
+# Tabelle erstellen 
+
+# nutzt OpenLigaDB als Quelle für die matchdays
+# berechnet jedes mal die komplette Tabelle etc. 
+
+OPENLIGADB_TO_KICKBASE = {
+    # OpenLiga : Kickbase
+    "FC Bayern München": "Bayern",
+    "Borussia Dortmund": "Dortmund",
+    "TSG Hoffenheim": "Hoffenheim",
+    "VfB Stuttgart": "Stuttgart",
+    "RB Leipzig": "Leipzig",
+    "Bayer 04 Leverkusen": "Leverkusen",
+    "Eintracht Frankfurt": "Frankfurt",
+    "SC Freiburg": "Freiburg",
+    "1. FC Union Berlin": "Union Berlin",
+    "FC Augsburg": "Augsburg",
+    "Hamburger SV": "Hamburg",
+    "Borussia Mönchengladbach": "M'gladbach",
+    "1. FSV Mainz 05": "Mainz",
+    "1. FC Köln": "Köln",
+    "SV Werder Bremen": "Bremen",
+    "FC St. Pauli": "St. Pauli", 
+    "VfL Wolfsburg": "Wolfsburg",
+    "1. FC Heidenheim 1846": "Heidenheim",
+}
+
+def kb_season_to_openLiga_season(kb_season):
+    open_liga_season = kb_season.split("/")[0]
+    return open_liga_season
+
+def get_data_matchdays(season): 
+    response = requests.get(f"https://api.openligadb.de/getmatchdata/bl1/{season}")
+    
+    if response.status_code != 200:
+        print("Fehler beim Statuscode für Request create_tables_for_every_matchday", response.status_code)
+    
+    matchdays = response.json()
+    #relevante Einträge in matchdays: matchDateTime, team1, team2, matchResults
+    stats_matchdays = []
+    last_seen_matchday = None
+    cur_matchday = []
+    for match in matchdays:
+        new_matchday = False
+
+        if not match["matchIsFinished"]: 
+            continue
+        
+        date = match.get("matchDateTime")
+
+        team1_name = match["team1"]["teamName"]
+        team1_name_kb = OPENLIGADB_TO_KICKBASE[team1_name]
+
+        team2_name = match["team2"]["teamName"]
+        team2_name_kb = OPENLIGADB_TO_KICKBASE[team2_name]
+
+        matchday_number = match["group"].get("groupOrderID")
+        if matchday_number != last_seen_matchday:
+            new_matchday = True
+        
+        matchresult = next((result for result in match["matchResults"] if result["resultName"] == "Endergebnis"), None)
+        if matchresult:
+            goals_team1 = matchresult["pointsTeam1"]
+            goals_team2 = matchresult["pointsTeam2"]
+
+        else:
+            print(f"Missing Goals in: {match}")
+            goals_team1 = 0
+            goals_team2 = 0
+        
+        if goals_team1 > goals_team2:
+            points_team1 = 3
+            points_team2 = 0
+        elif goals_team1 == goals_team2:
+            points_team1 = 1
+            points_team2 = 1
+        else:
+            points_team1 = 0
+            points_team2 = 3
+        
+        if new_matchday:
+            if cur_matchday:
+                stats_matchdays.append(cur_matchday)
+                cur_matchday = []
+                last_seen_matchday = matchday_number
+
+        cur_matchday.append({
+            "date": date,
+            "matchday": matchday_number,
+            "team1_name": team1_name_kb,
+            "team2_name": team2_name_kb,
+            "goals_team1": goals_team1,
+            "goals_team2": goals_team2,
+            "points_team1": points_team1,
+            "points_team2": points_team2
+        })
+    stats_matchdays.append(cur_matchday)
+    return stats_matchdays
+
+
+
+# def create_table(matchdays, matchday_number): 
+# erstellt basierend auf Daten von get_data_matchdays die Tabelle bis Spieltag matchday_number (könnte z.B. nach Spieltag 3, 5, 7 oder so sein)
