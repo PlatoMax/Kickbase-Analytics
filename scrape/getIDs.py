@@ -1,14 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
-import json
-import re
 import unicodedata
 from rapidfuzz import fuzz
 from scrape.config import API_URL
-from database import clear_teams, save_teams, clear_players, save_players, get_team_id_by_name
-from scrape.fetch import login
 
-token, league_id, cookies = login()
 
 TEAMS_MAPPING = { 
 #   Kickbase: Ligainsider

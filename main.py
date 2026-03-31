@@ -7,7 +7,7 @@ from database import *
 import sqlite3
 from scrape.getIDs import fetch_ligainsider_players
 
-start_time = time.time()
+start_time = time.perf_counter()
 total_entries_databank = 0
 
 token, league_id, cookies = login()
@@ -31,7 +31,10 @@ season = "2024/2025"
 # print(kb_season_to_openLiga_season(season))
 openL_season = kb_season_to_openLiga_season(season)
 
-print(get_data_matchdays("2025"))
+data_matchdays = get_data_matchdays("2025")
+team_tracker = calculate_table(data_matchdays, 27)
+table = create_table(team_tracker)
+save_team_stat(table)
 
 position = 3
 # stats_ligainsider = scrape_player_stats_LI(spielername, position, season)       
@@ -58,7 +61,7 @@ position = 3
 # clear_players()
 # save_players(matches)
 
-end_time = time.time()
+end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60
 print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minuten:.2f} Minuten gespeichert.")
 

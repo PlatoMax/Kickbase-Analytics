@@ -3,6 +3,7 @@ import requests
 from scrape.config import API_URL
 import sqlite3
 from bs4 import BeautifulSoup 
+import time #time nur für ein paar Tests der einzelnen Funktionen
 
 # Ligainsider: 
 
@@ -478,7 +479,7 @@ def kb_season_to_openLiga_season(kb_season):
 
 def get_data_matchdays(season): 
     response = requests.get(f"https://api.openligadb.de/getmatchdata/bl1/{season}")
-    
+
     if response.status_code != 200:
         print("Fehler beim Statuscode für Request create_tables_for_every_matchday", response.status_code)
     
@@ -528,8 +529,8 @@ def get_data_matchdays(season):
         if new_matchday:
             if cur_matchday:
                 stats_matchdays.append(cur_matchday)
-                cur_matchday = []
-                last_seen_matchday = matchday_number
+            cur_matchday = []
+            last_seen_matchday = matchday_number
 
         cur_matchday.append({
             "date": date,
@@ -546,5 +547,41 @@ def get_data_matchdays(season):
 
 
 
-# def create_table(matchdays, matchday_number): 
+def calculate_table(matchdays, matchday_number): 
 # erstellt basierend auf Daten von get_data_matchdays die Tabelle bis Spieltag matchday_number (könnte z.B. nach Spieltag 3, 5, 7 oder so sein)
+    team_tracker = {}
+    for matchday in matchdays:
+        for match in matchday:
+            if match["matchday"] > matchday_number:
+                break
+            teamname1 = match.get("team1_name")
+            teamname2 = match.get("team2_name")
+
+            if not teamname1 in team_tracker: # stellt sicher, dass das Teeam auch im Dict ist. 
+                team_tracker[teamname1] = {"points": 0, "goals": 0, "goals_conceded": 0, "matchday": matchday_number}
+
+            if not teamname2 in team_tracker:
+                team_tracker[teamname2] = {"points": 0, "goals": 0, "goals_conceded": 0, "matchday": matchday_number}
+            
+            t1 = team_tracker[teamname1]
+            t2 = team_tracker[teamname2]
+
+            t1["points"] += match.get("points_team1", 0)
+            t1["goals"] += match.get("goals_team1", 0)
+            t1["goals_conceded"] += match.get("goals_team2", 0) 
+            
+            t2["points"] += match.get("points_team2", 0)
+            t2["goals"] += match.get("goals_team2", 0)
+            t2["goals_conceded"] += match.get("goals_team1", 0)
+ 
+    return team_tracker
+
+def create_table(team_tracker):
+    table = sorted(team_tracker.items(), key=lambda item: (
+        item[1]["points"],
+        item[1]["goals"] - item[1]["goals_conceded"],
+        item[1]["goals"]
+    ), 
+    reverse=True 
+    )
+    return table

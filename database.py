@@ -22,11 +22,11 @@ def create_tables():
         CREATE TABLE IF NOT EXISTS team_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             team_id INTEGER,
-            date TEXT,
+            matchday INTEGER,
             table_position INTEGER,
             next_opponent TEXT,
             has_home_game INTEGER,
-            has_international_game INTEGER,
+            current_form INTEGER, 
             FOREIGN KEY (team_id) REFERENCES teams(id)
         )
     """)
@@ -330,3 +330,20 @@ def save_players(matches):
     
     finally:
         conn.close()
+
+
+def save_team_stat(table): # aktuelle Form, Heimspiele, nächster Gegner etc. noch hinzufügen. 
+    for platz, element in enumerate(table, start = 1):
+        team_name = element[0]
+        team_daten = element[1]
+
+        row = {
+            "platz": platz,
+            "last_matchday": team_daten["matchday"],
+            "team": team_name,
+            "points": team_daten["points"],
+            "goal_difference": team_daten["goals"] - team_daten["goals_conceded"],
+            "goals": team_daten["goals"],
+            "goals_conceded": team_daten["goals_conceded"]
+        }
+        print(row)
