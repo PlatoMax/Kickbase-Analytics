@@ -446,7 +446,7 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
 
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------
-# Tabelle erstellen 
+# Teamstats
 
 # nutzt OpenLigaDB als Quelle für die matchdays
 # berechnet jedes mal die komplette Tabelle etc. 
@@ -484,6 +484,44 @@ def get_data_matchdays(season):
         print("Fehler beim Statuscode für Request create_tables_for_every_matchday", response.status_code)
     
     matchdays = response.json()
+    return matchdays
+
+def get_next_opponents(matchdays):
+    '''return dictonary mit jeweils nächsten Gegner und ob Heim oder Auswärtsspiel'''
+    opponents = []
+    target_matchday = None
+    for match in matchdays:
+        if not match["matchIsFinished"]:
+            target_matchday = match["group"].get("groupOrderID")
+            break
+    if target_matchday is None: #Edge Case Saison ist vorbei
+        return []
+    
+    for match in matchdays:
+        matchday_number = match["group"].get("groupOrderID")
+        if matchday_number > target_matchday:
+            break
+        if matchday_number == target_matchday:
+            team1_name = match["team1"]["teamName"]
+            team1_name_kb = OPENLIGADB_TO_KICKBASE[team1_name]
+
+            team2_name = match["team2"]["teamName"]
+            team2_name_kb = OPENLIGADB_TO_KICKBASE[team2_name]    
+    
+            opponents.append({
+                "Teamname": team1_name_kb,
+                "opponent": team2_name_kb,
+                "Heimvorteil": 1
+            })
+            opponents.append({
+                "Teamname": team2_name_kb,
+                "opponent": team1_name_kb,
+                "Heimvorteil": 0
+            })
+    return opponents
+
+
+def clean_matchdays(matchdays): 
     #relevante Einträge in matchdays: matchDateTime, team1, team2, matchResults
     stats_matchdays = []
     last_seen_matchday = None
@@ -545,14 +583,19 @@ def get_data_matchdays(season):
     stats_matchdays.append(cur_matchday)
     return stats_matchdays
 
+# def calculate_current_form(stats_matchdays):
+    # Rückwärts vorgehen und für jedes Team Punkte aus letzten 5 Spieltag berechnen (sofern 5 Spieltage vorhanden)
 
-
-def calculate_table(matchdays, matchday_number): 
+def calculate_table(stats_matchdays, matchday_number): 
 # erstellt basierend auf Daten von get_data_matchdays die Tabelle bis Spieltag matchday_number (könnte z.B. nach Spieltag 3, 5, 7 oder so sein)
     team_tracker = {}
-    for matchday in matchdays:
+    abbruch = False
+    for matchday in stats_matchdays:
+        if abbruch:
+            break
         for match in matchday:
             if match["matchday"] > matchday_number:
+                abbruch = True
                 break
             teamname1 = match.get("team1_name")
             teamname2 = match.get("team2_name")
@@ -585,3 +628,4 @@ def create_table(team_tracker):
     reverse=True 
     )
     return table
+

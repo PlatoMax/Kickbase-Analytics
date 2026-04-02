@@ -32,9 +32,10 @@ season = "2024/2025"
 openL_season = kb_season_to_openLiga_season(season)
 
 data_matchdays = get_data_matchdays("2025")
-team_tracker = calculate_table(data_matchdays, 27)
-table = create_table(team_tracker)
-save_team_stat(table)
+print(get_next_opponents(data_matchdays))
+# team_tracker = calculate_table(data_matchdays, 27)
+# table = create_table(team_tracker)
+# save_team_stat(table)
 
 position = 3
 # stats_ligainsider = scrape_player_stats_LI(spielername, position, season)       
