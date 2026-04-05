@@ -486,14 +486,15 @@ def get_data_matchdays(season):
     matchdays = response.json()
     return matchdays
 
-def get_next_opponents(matchdays):
+def get_next_opponents(matchdays, current_matchday): 
     '''return dictonary mit jeweils nächsten Gegner und ob Heim oder Auswärtsspiel'''
     opponents = []
     target_matchday = None
     for match in matchdays:
-        if not match["matchIsFinished"]:
+        if match["group"].get("groupOrderID") > current_matchday:
             target_matchday = match["group"].get("groupOrderID")
             break
+
     if target_matchday is None: #Edge Case Saison ist vorbei
         return []
     
@@ -583,8 +584,6 @@ def clean_matchdays(matchdays):
     stats_matchdays.append(cur_matchday)
     return stats_matchdays
 
-# def calculate_current_form(stats_matchdays):
-    # Rückwärts vorgehen und für jedes Team Punkte aus letzten 5 Spieltag berechnen (sofern 5 Spieltage vorhanden)
 
 def calculate_table(stats_matchdays, matchday_number): 
 # erstellt basierend auf Daten von get_data_matchdays die Tabelle bis Spieltag matchday_number (könnte z.B. nach Spieltag 3, 5, 7 oder so sein)
@@ -628,4 +627,42 @@ def create_table(team_tracker):
     reverse=True 
     )
     return table
+
+def get_current_form(stats_matchdays, matchday_number): 
+    teams_form = {}
+    abbruch = False
+    for matchday in stats_matchdays:
+        if abbruch:
+            break
+        for match in matchday:
+            if match["matchday"] > matchday_number:
+                abbruch = True
+                break
+            teamname1 = match.get("team1_name")
+            teamname2 = match.get("team2_name")
+
+            if not teamname1 in teams_form: # stellt sicher, dass das Team auch im Dict ist. 
+                teams_form[teamname1] = []
+
+            if not teamname2 in teams_form:
+                teams_form[teamname2] = []
+            
+            teams_form[teamname1].append({
+                "points": match["points_team1"],
+                "goals": match["goals_team1"],
+                "goals_conceded": match["goals_team2"],
+                "Heimvorteil": 1
+            })
+            teams_form[teamname2].append({
+                "points": match["points_team2"],
+                "goals": match["goals_team2"],
+                "goals_conceded": match["goals_team1"],
+                "Heimvorteil": 0
+
+            })
+            teams_form[teamname1] = teams_form[teamname1][-5:]
+            teams_form[teamname2] = teams_form[teamname2][-5:]
+    
+    return teams_form
+
 

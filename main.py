@@ -33,8 +33,10 @@ openL_season = kb_season_to_openLiga_season(season)
 
 data_matchdays = get_data_matchdays("2025")
 print(get_next_opponents(data_matchdays))
-# team_tracker = calculate_table(data_matchdays, 27)
-# table = create_table(team_tracker)
+clean_data = clean_matchdays(data_matchdays)
+team_tracker = calculate_table(clean_data, 10)
+table = create_table(team_tracker)
+print(table)
 # save_team_stat(table)
 
 position = 3

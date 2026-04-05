@@ -332,18 +332,6 @@ def save_players(matches):
         conn.close()
 
 
-def save_team_stat(table): # aktuelle Form, Heimspiele, nächster Gegner etc. noch hinzufügen. 
-    for platz, element in enumerate(table, start = 1):
-        team_name = element[0]
-        team_daten = element[1]
-
-        row = {
-            "platz": platz,
-            "last_matchday": team_daten["matchday"],
-            "team": team_name,
-            "points": team_daten["points"],
-            "goal_difference": team_daten["goals"] - team_daten["goals_conceded"],
-            "goals": team_daten["goals"],
-            "goals_conceded": team_daten["goals_conceded"]
-        }
-        print(row)
+#def save_team_stat(table, next_opponent, current_form): # aktuelle Form, Heimspiele, nächster Gegner etc. noch hinzufügen. 
+    # Aufbau: Saison, matchday, points, goals, goals_conceded, Tabellenplatz, next_opponent, Heimvorteil nächstes Spiel, Tabellenplatz Gegner, Tore etc. Gegner, 
+    # Form letzten 5 Spiele + Tore etc.   
