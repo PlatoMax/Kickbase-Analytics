@@ -361,13 +361,6 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
             })
     return performance
 
-#-----------------------------------------------------------------------------------------------------------------------------
-# Teams
-
-# def get_table_standig_after_matchday(season, matchday):
-
-# def get_next_opponent(team, season, matchday):
-
 # ----------------------------------------------------------------------------------------------------------------------------
 # Daten Kickbase + LigaInsider kombinieren
 
@@ -664,5 +657,56 @@ def get_current_form(stats_matchdays, matchday_number):
             teams_form[teamname2] = teams_form[teamname2][-5:]
     
     return teams_form
+
+def merge_team_stats(table, next_opponent, current_form):
+    merged_results = []
+    
+    table_lookup = {team_name: {"rank": index + 1, **stats} 
+                    for index, (team_name, stats) in enumerate(table)}
+                    
+    opp_lookup = {item["Teamname"]: item for item in next_opponent}
+
+    for index, (team_name, table_stats) in enumerate(table):
+        team_entry = {
+            "Teamname": team_name,
+            "Tabellenplatz": index + 1
+        }
+        team_entry.update(table_stats)
+        
+        opp_data = opp_lookup.get(team_name, {})
+        opponent_name = opp_data.get("opponent")
+        
+        team_entry["opponent"] = opponent_name
+        team_entry["Heimvorteil"] = opp_data.get("Heimvorteil")
+        
+        if opponent_name and opponent_name in table_lookup:
+            team_entry["opponent_rank"] = table_lookup[opponent_name]["rank"]
+        else:
+            team_entry["opponent_rank"] = None
+            
+        team_form = current_form.get(team_name, [])
+        max_form_games = 5
+
+        for match_number in range(1, max_form_games + 1):
+
+            if match_number <= len(team_form):
+                match_stats = team_form[-match_number] 
+                
+                team_entry[f"form_match_{match_number}_points"] = match_stats.get("points")
+                team_entry[f"form_match_{match_number}_goals"] = match_stats.get("goals")
+                team_entry[f"form_match_{match_number}_goals_conceded"] = match_stats.get("goals_conceded")
+                team_entry[f"form_match_{match_number}_Heimvorteil"] = match_stats.get("Heimvorteil")
+            else:
+                # Platzhalter für Spiele, die es noch nicht gibt
+                team_entry[f"form_match_{match_number}_points"] = None
+                team_entry[f"form_match_{match_number}_goals"] = None
+                team_entry[f"form_match_{match_number}_goals_conceded"] = None
+                team_entry[f"form_match_{match_number}_Heimvorteil"] = None
+                
+        merged_results.append(team_entry)
+                
+    return merged_results
+
+
 
 

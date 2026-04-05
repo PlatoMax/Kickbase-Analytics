@@ -332,6 +332,26 @@ def save_players(matches):
         conn.close()
 
 
-#def save_team_stat(table, next_opponent, current_form): # aktuelle Form, Heimspiele, nächster Gegner etc. noch hinzufügen. 
+def save_team_stat(merged_team_stats): 
     # Aufbau: Saison, matchday, points, goals, goals_conceded, Tabellenplatz, next_opponent, Heimvorteil nächstes Spiel, Tabellenplatz Gegner, Tore etc. Gegner, 
     # Form letzten 5 Spiele + Tore etc.   
+    conn = get_connection()
+    cursor = conn.cursor()
+    sql = """
+        INSERT INTO team_stats (Teamname, Tabellenplatz, points, goals, goals_conceded, matchday, opponent, Heimvorteil, opponent_rank, 
+        form_match_1_points, form_match_1_goals, form_match_1_goals_conceded, form_match_1_Heimvorteil, form_match_2_points, form_match_2_goals,
+        form_match_2_goals_conceded, form_match_2_Heimvorteil, form_match_3_points, form_match_3_goals, form_match_3_goals_conceded, form_match_3_Heimvorteil,
+        form_match_4_points, form_match_4_goals, form_match_4_goals_conceded, form_match_4_Heimvorteil, form_match_5_points, form_match_5_goals,
+        form_match_5_goals_conceded, form_match_5_Heimvorteil) VALUES (:team_name, :table_position, :points, :goals, :goals_conceded, :matchday, :next_opponent, :has_home_game, :opponent_rank,
+        :form_match_1_points, :form_match_1_goals, :form_match_1_goals_conceded, :form_match_1_Heimvorteil, :form_match_2_points, :form_match_2_goals,
+        :form_match_2_goals_conceded, :form_match_2_Heimvorteil, :form_match_3_points, :form_match_3_goals, :form_match_3_goals_conceded, :form_match_3_Heimvorteil,
+        :form_match_4_points, :form_match_4_goals, :form_match_4_goals_conceded, :form_match_4_Heimvorteil, :form_match_5_points, :form_match_5_goals,
+        :form_match_5_goals_conceded, :form_match_5_Heimvorteil)
+        """
+    try: 
+        cursor.executemany(sql, merged_team_stats)
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f'Fehler beim Einfügen der Teamstats: {e}')
+    finally:
+        conn.close()

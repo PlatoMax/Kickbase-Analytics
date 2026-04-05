@@ -16,7 +16,7 @@ spielername = "Olise"
 neuer_id, neuer_pos = get_player_id_and_position_kickbase(token, cookies, spielername)
 # print(f"Kickbase-ID von {spielername}: {neuer_id}")
 
-# print(get_market_value_at_date(get_player_market_values(token, cookies, neuer_id), "2026-03-06"))
+# print(get_market_value_at_date(get_player_market_values(token, cookies, neuer_id), "2026-04-05"))
 
 # player_info = get_player_info(token, cookies, neuer_id)
 # print(get_player_info(token, cookies, neuer_id))
@@ -24,7 +24,7 @@ neuer_id, neuer_pos = get_player_id_and_position_kickbase(token, cookies, spiele
 # team_id = player_info["team"]
 # print("Name: ", name, " Team ID:" , team_id)
 
-season = "2024/2025"
+season = "2025/2026"
 # stats_kickbase = get_player_performance_kb(token, cookies, neuer_id, team_id, season)
 # print(stats_kickbase)
 
@@ -32,11 +32,13 @@ season = "2024/2025"
 openL_season = kb_season_to_openLiga_season(season)
 
 data_matchdays = get_data_matchdays("2025")
-print(get_next_opponents(data_matchdays))
+next_opponents = get_next_opponents(data_matchdays, 28)
 clean_data = clean_matchdays(data_matchdays)
-team_tracker = calculate_table(clean_data, 10)
+team_tracker = calculate_table(clean_data, 28)
 table = create_table(team_tracker)
-print(table)
+teams_form = get_current_form(clean_data, 28)
+matchday_10 = merge_team_stats(table, next_opponents, teams_form)
+print(matchday_10)
 # save_team_stat(table)
 
 position = 3
@@ -63,6 +65,11 @@ position = 3
 # matches = match_players(list_kickbase, list_ligainsider, ALIAS_MAP, TEAMS_MAPPING)
 # clear_players()
 # save_players(matches)
+
+
+
+
+
 
 end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60
