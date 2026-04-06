@@ -21,13 +21,36 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS team_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            team_id INTEGER,
+            Teamname TEXT,
+            Tabellenplatz INTEGER,
             matchday INTEGER,
-            table_position INTEGER,
-            next_opponent TEXT,
-            has_home_game INTEGER,
-            current_form INTEGER, 
-            FOREIGN KEY (team_id) REFERENCES teams(id)
+            season TEXT,
+            points INTEGER,
+            goals INTEGER,
+            goals_conceded INTEGER,
+            opponent TEXT,
+            Heimvorteil INTEGER,
+            opponent_rank INTEGER,
+            form_match_1_points INTEGER,
+            form_match_1_goals INTEGER,
+            form_match_1_goals_conceded INTEGER,
+            form_match_1_Heimvorteil INTEGER,
+            form_match_2_points INTEGER,
+            form_match_2_goals INTEGER,
+            form_match_2_goals_conceded INTEGER,
+            form_match_2_Heimvorteil INTEGER,
+            form_match_3_points INTEGER,
+            form_match_3_goals INTEGER,
+            form_match_3_goals_conceded INTEGER,
+            form_match_3_Heimvorteil INTEGER,
+            form_match_4_points INTEGER,
+            form_match_4_goals INTEGER,
+            form_match_4_goals_conceded INTEGER,
+            form_match_4_Heimvorteil INTEGER,
+            form_match_5_points INTEGER,
+            form_match_5_goals INTEGER,
+            form_match_5_goals_conceded INTEGER,
+            form_match_5_Heimvorteil INTEGER
         )
     """)
     cursor.execute("""
@@ -332,21 +355,21 @@ def save_players(matches):
         conn.close()
 
 
-def save_team_stat(merged_team_stats): 
+def save_team_stats(merged_team_stats): 
     # Aufbau: Saison, matchday, points, goals, goals_conceded, Tabellenplatz, next_opponent, Heimvorteil nächstes Spiel, Tabellenplatz Gegner, Tore etc. Gegner, 
     # Form letzten 5 Spiele + Tore etc.   
     conn = get_connection()
     cursor = conn.cursor()
     sql = """
-        INSERT INTO team_stats (Teamname, Tabellenplatz, points, goals, goals_conceded, matchday, opponent, Heimvorteil, opponent_rank, 
+        INSERT INTO team_stats (Teamname, Tabellenplatz, matchday, season, points, goals, goals_conceded, opponent, Heimvorteil, opponent_rank, 
         form_match_1_points, form_match_1_goals, form_match_1_goals_conceded, form_match_1_Heimvorteil, form_match_2_points, form_match_2_goals,
         form_match_2_goals_conceded, form_match_2_Heimvorteil, form_match_3_points, form_match_3_goals, form_match_3_goals_conceded, form_match_3_Heimvorteil,
         form_match_4_points, form_match_4_goals, form_match_4_goals_conceded, form_match_4_Heimvorteil, form_match_5_points, form_match_5_goals,
-        form_match_5_goals_conceded, form_match_5_Heimvorteil) VALUES (:team_name, :table_position, :points, :goals, :goals_conceded, :matchday, :next_opponent, :has_home_game, :opponent_rank,
-        :form_match_1_points, :form_match_1_goals, :form_match_1_goals_conceded, :form_match_1_Heimvorteil, :form_match_2_points, :form_match_2_goals,
-        :form_match_2_goals_conceded, :form_match_2_Heimvorteil, :form_match_3_points, :form_match_3_goals, :form_match_3_goals_conceded, :form_match_3_Heimvorteil,
-        :form_match_4_points, :form_match_4_goals, :form_match_4_goals_conceded, :form_match_4_Heimvorteil, :form_match_5_points, :form_match_5_goals,
-        :form_match_5_goals_conceded, :form_match_5_Heimvorteil)
+        form_match_5_goals_conceded, form_match_5_Heimvorteil) VALUES (:Teamname, :Tabellenplatz, :matchday, :season, :points, :goals, :goals_conceded, 
+        :next_opponent, :has_home_game, :opponent_rank, :form_match_1_points, :form_match_1_goals, :form_match_1_goals_conceded, :form_match_1_Heimvorteil, 
+        :form_match_2_points, :form_match_2_goals, :form_match_2_goals_conceded, :form_match_2_Heimvorteil, :form_match_3_points, :form_match_3_goals, 
+        :form_match_3_goals_conceded, :form_match_3_Heimvorteil, :form_match_4_points, :form_match_4_goals, :form_match_4_goals_conceded, 
+        :form_match_4_Heimvorteil, :form_match_5_points, :form_match_5_goals, :form_match_5_goals_conceded, :form_match_5_Heimvorteil)
         """
     try: 
         cursor.executemany(sql, merged_team_stats)
@@ -355,3 +378,19 @@ def save_team_stat(merged_team_stats):
         print(f'Fehler beim Einfügen der Teamstats: {e}')
     finally:
         conn.close()
+
+def clear_teams_stats_one_season(season): # season hat to be the kickbase Season, e.g. "2025/2026"
+    conn = get_connection()
+    cursor = conn.cursor()
+    try: 
+        cursor.execute(" DELETE FROM team_stats WHERE season = ?", (season,))
+        conn.commit() 
+        print(f"Datenbank team_stats für Saison {season} cleared")
+     
+    except sqlite3.Error as e:
+         print(f"Error beim clearen von team_stats: {e}")
+    
+    finally: 
+        conn.close()
+    
+

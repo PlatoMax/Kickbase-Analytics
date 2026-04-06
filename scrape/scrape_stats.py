@@ -470,6 +470,11 @@ def kb_season_to_openLiga_season(kb_season):
     open_liga_season = kb_season.split("/")[0]
     return open_liga_season
 
+def openLiga_season_to_kb_season(openLiga_season):
+    sec_year = int(openLiga_season) + 1
+    kb_season = f"{openLiga_season}/{sec_year}"
+    return kb_season
+
 def get_data_matchdays(season): 
     response = requests.get(f"https://api.openligadb.de/getmatchdata/bl1/{season}")
 
@@ -527,6 +532,8 @@ def clean_matchdays(matchdays):
             continue
         
         date = match.get("matchDateTime")
+        season = match.get("leagueSeason")
+        kb_season = openLiga_season_to_kb_season(season)
 
         team1_name = match["team1"]["teamName"]
         team1_name_kb = OPENLIGADB_TO_KICKBASE[team1_name]
@@ -565,6 +572,7 @@ def clean_matchdays(matchdays):
             last_seen_matchday = matchday_number
 
         cur_matchday.append({
+            "season": kb_season,
             "date": date,
             "matchday": matchday_number,
             "team1_name": team1_name_kb,
@@ -593,10 +601,10 @@ def calculate_table(stats_matchdays, matchday_number):
             teamname2 = match.get("team2_name")
 
             if not teamname1 in team_tracker: # stellt sicher, dass das Teeam auch im Dict ist. 
-                team_tracker[teamname1] = {"points": 0, "goals": 0, "goals_conceded": 0, "matchday": matchday_number}
+                team_tracker[teamname1] = {"matchday": matchday_number, "season": match.get("season"), "points": 0, "goals": 0, "goals_conceded": 0}
 
             if not teamname2 in team_tracker:
-                team_tracker[teamname2] = {"points": 0, "goals": 0, "goals_conceded": 0, "matchday": matchday_number}
+                team_tracker[teamname2] = {"matchday": matchday_number, "season": match.get("season"), "points": 0, "goals": 0, "goals_conceded": 0}
             
             t1 = team_tracker[teamname1]
             t2 = team_tracker[teamname2]
@@ -676,8 +684,8 @@ def merge_team_stats(table, next_opponent, current_form):
         opp_data = opp_lookup.get(team_name, {})
         opponent_name = opp_data.get("opponent")
         
-        team_entry["opponent"] = opponent_name
-        team_entry["Heimvorteil"] = opp_data.get("Heimvorteil")
+        team_entry["next_opponent"] = opponent_name
+        team_entry["has_home_game"] = opp_data.get("Heimvorteil")
         
         if opponent_name and opponent_name in table_lookup:
             team_entry["opponent_rank"] = table_lookup[opponent_name]["rank"]
