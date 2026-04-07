@@ -28,25 +28,39 @@ def create_tables():
             points INTEGER,
             goals INTEGER,
             goals_conceded INTEGER,
-            opponent TEXT,
-            Heimvorteil INTEGER,
-            opponent_rank INTEGER,
+            
+            opponent_1 TEXT,
+            opponent_1_Heimvorteil INTEGER,
+            opponent_1_rank INTEGER,
+            
+            opponent_2 TEXT,
+            opponent_2_Heimvorteil INTEGER,
+            opponent_2_rank INTEGER,
+            
+            opponent_3 TEXT,
+            opponent_3_Heimvorteil INTEGER,
+            opponent_3_rank INTEGER,
+            
             form_match_1_points INTEGER,
             form_match_1_goals INTEGER,
             form_match_1_goals_conceded INTEGER,
             form_match_1_Heimvorteil INTEGER,
+            
             form_match_2_points INTEGER,
             form_match_2_goals INTEGER,
             form_match_2_goals_conceded INTEGER,
             form_match_2_Heimvorteil INTEGER,
+            
             form_match_3_points INTEGER,
             form_match_3_goals INTEGER,
             form_match_3_goals_conceded INTEGER,
             form_match_3_Heimvorteil INTEGER,
+            
             form_match_4_points INTEGER,
             form_match_4_goals INTEGER,
             form_match_4_goals_conceded INTEGER,
             form_match_4_Heimvorteil INTEGER,
+            
             form_match_5_points INTEGER,
             form_match_5_goals INTEGER,
             form_match_5_goals_conceded INTEGER,
@@ -361,16 +375,33 @@ def save_team_stats(merged_team_stats):
     conn = get_connection()
     cursor = conn.cursor()
     sql = """
-        INSERT INTO team_stats (Teamname, Tabellenplatz, matchday, season, points, goals, goals_conceded, opponent, Heimvorteil, opponent_rank, 
-        form_match_1_points, form_match_1_goals, form_match_1_goals_conceded, form_match_1_Heimvorteil, form_match_2_points, form_match_2_goals,
-        form_match_2_goals_conceded, form_match_2_Heimvorteil, form_match_3_points, form_match_3_goals, form_match_3_goals_conceded, form_match_3_Heimvorteil,
-        form_match_4_points, form_match_4_goals, form_match_4_goals_conceded, form_match_4_Heimvorteil, form_match_5_points, form_match_5_goals,
-        form_match_5_goals_conceded, form_match_5_Heimvorteil) VALUES (:Teamname, :Tabellenplatz, :matchday, :season, :points, :goals, :goals_conceded, 
-        :next_opponent, :has_home_game, :opponent_rank, :form_match_1_points, :form_match_1_goals, :form_match_1_goals_conceded, :form_match_1_Heimvorteil, 
-        :form_match_2_points, :form_match_2_goals, :form_match_2_goals_conceded, :form_match_2_Heimvorteil, :form_match_3_points, :form_match_3_goals, 
-        :form_match_3_goals_conceded, :form_match_3_Heimvorteil, :form_match_4_points, :form_match_4_goals, :form_match_4_goals_conceded, 
-        :form_match_4_Heimvorteil, :form_match_5_points, :form_match_5_goals, :form_match_5_goals_conceded, :form_match_5_Heimvorteil)
-        """
+        INSERT INTO team_stats (
+            Teamname, Tabellenplatz, matchday, season, points, goals, goals_conceded, 
+            
+            opponent_1, opponent_1_Heimvorteil, opponent_1_rank,
+            opponent_2, opponent_2_Heimvorteil, opponent_2_rank,
+            opponent_3, opponent_3_Heimvorteil, opponent_3_rank,
+            
+            form_match_1_points, form_match_1_goals, form_match_1_goals_conceded, form_match_1_Heimvorteil, 
+            form_match_2_points, form_match_2_goals, form_match_2_goals_conceded, form_match_2_Heimvorteil, 
+            form_match_3_points, form_match_3_goals, form_match_3_goals_conceded, form_match_3_Heimvorteil,
+            form_match_4_points, form_match_4_goals, form_match_4_goals_conceded, form_match_4_Heimvorteil, 
+            form_match_5_points, form_match_5_goals, form_match_5_goals_conceded, form_match_5_Heimvorteil
+            
+        ) VALUES (
+            :Teamname, :Tabellenplatz, :matchday, :season, :points, :goals, :goals_conceded, 
+            
+            :opponent_1, :opponent_1_Heimvorteil, :opponent_1_rank, 
+            :opponent_2, :opponent_2_Heimvorteil, :opponent_2_rank, 
+            :opponent_3, :opponent_3_Heimvorteil, :opponent_3_rank, 
+            
+            :form_match_1_points, :form_match_1_goals, :form_match_1_goals_conceded, :form_match_1_Heimvorteil, 
+            :form_match_2_points, :form_match_2_goals, :form_match_2_goals_conceded, :form_match_2_Heimvorteil, 
+            :form_match_3_points, :form_match_3_goals, :form_match_3_goals_conceded, :form_match_3_Heimvorteil, 
+            :form_match_4_points, :form_match_4_goals, :form_match_4_goals_conceded, :form_match_4_Heimvorteil, 
+            :form_match_5_points, :form_match_5_goals, :form_match_5_goals_conceded, :form_match_5_Heimvorteil
+        )
+    """
     try: 
         cursor.executemany(sql, merged_team_stats)
         conn.commit()

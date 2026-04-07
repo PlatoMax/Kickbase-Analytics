@@ -12,21 +12,21 @@ total_entries_databank = 0
 
 token, league_id, cookies = login()
 
-spielername = "Olise"
+spielername = "Bischof"
 neuer_id, neuer_pos = get_player_id_and_position_kickbase(token, cookies, spielername)
-# print(f"Kickbase-ID von {spielername}: {neuer_id}")
+print(f"Kickbase-ID von {spielername}: {neuer_id}")
 
-# print(get_market_value_at_date(get_player_market_values(token, cookies, neuer_id), "2026-04-05"))
+print(get_market_value_at_date(get_player_market_values(token, cookies, neuer_id), "2026-04-05"))
 
-# player_info = get_player_info(token, cookies, neuer_id)
-# print(get_player_info(token, cookies, neuer_id))
-# name = player_info["name"]
-# team_id = player_info["team"]
-# print("Name: ", name, " Team ID:" , team_id)
+player_info = get_player_info(token, cookies, neuer_id)
+print(get_player_info(token, cookies, neuer_id))
+name = player_info["name"]
+team_id = player_info["team"]
+print("Name: ", name, " Team ID:" , team_id)
 
-season = "2025/2026"
-# stats_kickbase = get_player_performance_kb(token, cookies, neuer_id, team_id, season)
-# print(stats_kickbase)
+season = "2024/2025"
+stats_kickbase = get_player_performance_kb(token, cookies, neuer_id, team_id, season)
+print(stats_kickbase)
 
 # print(kb_season_to_openLiga_season(season))
 openL_season = kb_season_to_openLiga_season(season)
@@ -40,9 +40,9 @@ team_tracker = calculate_table(clean_data, matchday)
 table = create_table(team_tracker)
 teams_form = get_current_form(clean_data, matchday)
 cur_matchday = merge_team_stats(table, next_opponents, teams_form)
+min_match = min_matchday(clean_data)
 
-clear_teams_stats_one_season(season)
-save_team_stats(cur_matchday)
+
 
 position = 3
 # stats_ligainsider = scrape_player_stats_LI(spielername, position, season)       
@@ -79,7 +79,8 @@ dauer_in_minuten = (end_time - start_time) / 60
 print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minuten:.2f} Minuten gespeichert.")
 
 
+# Add in Player performance his team in that match
+# try einabuen bei Checks in den Dictonaries für Daten aus der vergangenheit, z.B. VFL-Bochum aus letztem Jahr nicht im Dictonary
 
-
-# mehr try except Blöcke einbauen für mögliche Fehler 
+# mehr try except Blöcke einbauen für mögliche Fehler
 # Teams Datenbank für jeden Spieltag Infos scrapen + in DB schreiben

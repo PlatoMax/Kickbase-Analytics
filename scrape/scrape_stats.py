@@ -3,7 +3,6 @@ import requests
 from scrape.config import API_URL
 import sqlite3
 from bs4 import BeautifulSoup 
-import time #time nur für ein paar Tests der einzelnen Funktionen
 
 # Ligainsider: 
 
@@ -321,7 +320,7 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
                 break 
             matchday = game.get("day")
             date = game.get("md")
-            point = game.get("p") # wenn nicht gespielt -> none (ggf. einbauen als Check) 
+            point = game.get("p") # wenn nicht gespielt -> none 
             minutes_str = game.get("mp") # Spielzeit
             minutes = int(minutes_str.replace("'", "")) if minutes_str else 0
             points_per_minute = point / minutes if minutes > 0 else None
@@ -486,7 +485,7 @@ def get_data_matchdays(season):
 
 def get_next_opponents(matchdays, current_matchday): 
     '''return dictonary mit jeweils nächsten Gegner und ob Heim oder Auswärtsspiel'''
-    opponents = []
+    opponents = {}
     target_matchday = None
     for match in matchdays:
         if match["group"].get("groupOrderID") > current_matchday:
@@ -494,29 +493,35 @@ def get_next_opponents(matchdays, current_matchday):
             break
 
     if target_matchday is None: #Edge Case Saison ist vorbei
-        return []
+        return {}
     
     for match in matchdays:
         matchday_number = match["group"].get("groupOrderID")
-        if matchday_number > target_matchday:
+        
+        if matchday_number > target_matchday + 2: # Nach 3 Spielen abbrechen da nur die nächsten 3 Gegner relevant sind
             break
-        if matchday_number == target_matchday:
+            
+        if matchday_number >= target_matchday:
             team1_name = match["team1"]["teamName"]
             team1_name_kb = OPENLIGADB_TO_KICKBASE[team1_name]
 
             team2_name = match["team2"]["teamName"]
             team2_name_kb = OPENLIGADB_TO_KICKBASE[team2_name]    
     
-            opponents.append({
-                "Teamname": team1_name_kb,
+            if team1_name_kb not in opponents:
+                opponents[team1_name_kb] = []
+            if team2_name_kb not in opponents:
+                opponents[team2_name_kb] = []
+
+            opponents[team1_name_kb].append({
                 "opponent": team2_name_kb,
                 "Heimvorteil": 1
             })
-            opponents.append({
-                "Teamname": team2_name_kb,
+            opponents[team2_name_kb].append({
                 "opponent": team1_name_kb,
                 "Heimvorteil": 0
             })
+            
     return opponents
 
 
@@ -585,6 +590,14 @@ def clean_matchdays(matchdays):
     stats_matchdays.append(cur_matchday)
     return stats_matchdays
 
+def min_matchday(stats_matchdays): # Wegen Marktwerte gehen Spielerstats nur 365 Tage zurück, daher auch Team_stats so drosseln
+    last_date = datetime.now() - timedelta(days=365) 
+    
+    for matchday_list in stats_matchdays:
+        if all(datetime.fromisoformat(match["date"]) > last_date for match in matchday_list):
+            return matchday_list[0]["matchday"]
+    print("Kein passender Spieltage gefunden für min_matchdays")       
+    return 34 # Falls nichts gefunden 34, weil es 34 Spieltage gibt -> somit kein Spieltage passend 
 
 def calculate_table(stats_matchdays, matchday_number): 
 # erstellt basierend auf Daten von get_data_matchdays die Tabelle bis Spieltag matchday_number (könnte z.B. nach Spieltag 3, 5, 7 oder so sein)
@@ -672,25 +685,35 @@ def merge_team_stats(table, next_opponent, current_form):
     table_lookup = {team_name: {"rank": index + 1, **stats} 
                     for index, (team_name, stats) in enumerate(table)}
                     
-    opp_lookup = {item["Teamname"]: item for item in next_opponent}
 
     for index, (team_name, table_stats) in enumerate(table):
         team_entry = {
             "Teamname": team_name,
             "Tabellenplatz": index + 1
         }
+
         team_entry.update(table_stats)
         
-        opp_data = opp_lookup.get(team_name, {})
-        opponent_name = opp_data.get("opponent")
-        
-        team_entry["next_opponent"] = opponent_name
-        team_entry["has_home_game"] = opp_data.get("Heimvorteil")
-        
-        if opponent_name and opponent_name in table_lookup:
-            team_entry["opponent_rank"] = table_lookup[opponent_name]["rank"]
-        else:
-            team_entry["opponent_rank"] = None
+        # Nächsten Gegner ergänzen
+        team_opponents = next_opponent.get(team_name, [])
+
+        for i in range(1,4):
+            if i <= len(team_opponents):
+                opp_data = team_opponents[i-1]
+                opponent_name = opp_data.get("opponent")
+
+                team_entry[f"opponent_{i}"] = opponent_name
+                team_entry[f"opponent_{i}_Heimvorteil"] = opp_data.get("Heimvorteil")
+                
+                if opponent_name and opponent_name in table_lookup:
+                    team_entry[f"opponent_{i}_rank"] = table_lookup[opponent_name]["rank"]
+                else:
+                    team_entry[f"opponent_{i}_rank"] = None
+            else:
+                # Case es gibt kein 3 Spiele mehr (zum Ende der Saison)
+                team_entry[f"opponent_{i}"] = None
+                team_entry[f"opponent_{i}_Heimvorteil"] = None
+                team_entry[f"opponent_{i}_rank"] = None
             
         team_form = current_form.get(team_name, [])
         max_form_games = 5
