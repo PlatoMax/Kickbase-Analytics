@@ -93,7 +93,9 @@ def create_tables():
             market_value REAL,
             points_per_value REAL,
             team1 INTEGER,
+            team1_name TEXT,
             team2 INTEGER,
+            team2_name TEXT,
             goals_own_team INTEGER,
             goals_enemy_team INTEGER,
             match_result INTEGER,
@@ -153,7 +155,9 @@ def create_tables():
             points_per_minute REAL,
             points_per_value REAL,
             team1 INTEGER,
+            team1_name TEXT,
             team2 INTEGER,
+            team2_name TEXT,
             goals_own_team INTEGER,
             goals_enemy_team INTEGER,
             match_result INTEGER,
@@ -236,7 +240,7 @@ def save_player_stats_field(player_id, stat):
     sql = """
         INSERT INTO player_stats_field (
             player_id, season, matchday, date, points, minutes,
-            points_per_minute, points_per_value, team1, team2,
+            points_per_minute, points_per_value, team1, team1_name, team2, team2_name,
             goals_own_team, goals_enemy_team, match_result, goals,
             assists, yellow_cards, yellow_red_cards, red_cards,
             ligaInsider_points, grade, status,
@@ -252,7 +256,7 @@ def save_player_stats_field(player_id, stat):
             fehler_vor_gegentor, geblockte_baelle
         ) VALUES (
             :player_id, :season, :matchday, :date, :points, :minutes,
-            :points_per_minute, :points_per_value, :team1, :team2,
+            :points_per_minute, :points_per_value, :team1, :team1_name, :team2, :team2_name,
             :goals_own_team, :goals_enemy_team, :match_result, :goals,
             :assists, :yellow_cards, :yellow_red_cards, :red_cards,
             :ligaInsider_points, :grade, :status,
@@ -290,7 +294,7 @@ def save_player_stats_gk(player_id, stat):
     sql = """
         INSERT INTO player_stats_gk (
             player_id, season, matchday, date, points, minutes,
-            points_per_minute, points_per_value, team1, team2,
+            points_per_minute, points_per_value, team1, team1_name, team2, team2_name,
             goals_own_team, goals_enemy_team, match_result, goals,
             assists, yellow_cards, yellow_red_cards, red_cards,
             ligaInsider_points, grade, status,
@@ -302,7 +306,7 @@ def save_player_stats_gk(player_id, stat):
             fehler_vor_gegentor
         ) VALUES (
             :player_id, :season, :matchday, :date, :points, :minutes,
-            :points_per_minute, :points_per_value, :team1, :team2,
+            :points_per_minute, :points_per_value, :team1, :team1_name, :team2, :team2_name,
             :goals_own_team, :goals_enemy_team, :match_result, :goals,
             :assists, :yellow_cards, :yellow_red_cards, :red_cards,
             :ligaInsider_points, :grade, :status,

@@ -3,6 +3,8 @@ import requests
 from scrape.config import API_URL
 import sqlite3
 from bs4 import BeautifulSoup 
+import json
+import os
 
 # Ligainsider: 
 
@@ -229,7 +231,29 @@ def get_player_goals_and_grades(name, season_kickbase):
     
 # ---------------------------------------------------------------------------------------------------------------------------
 # Kickbase: 
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+MAPPING_FILE = os.path.join(CURRENT_DIR, "team_mapping.json")
  
+def load_team_mapping():
+    if not os.path.exists(MAPPING_FILE):
+        return {}
+    with open(MAPPING_FILE, "r") as f:
+        return json.load(f)
+    
+def save_team_mapping(mapping):
+    with open(MAPPING_FILE, "w") as f:
+        json.dump(mapping, f, indent=4)
+
+KICKBASE_ID_TO_NAME = load_team_mapping()
+    
+def add_if_team_mapping__dont_exists(teamid, teamname): 
+    # Wenn Teamid und Teamname bekannt automatisch eintragen falls noch nicht vorhanden. Ideal nach get_player_info
+    if teamid not in KICKBASE_ID_TO_NAME:
+        KICKBASE_ID_TO_NAME[teamid] = teamname
+        save_team_mapping(KICKBASE_ID_TO_NAME)
+        print(f"{teamid}: {teamname} erfolgreich gespeichert")
+
 def get_min_season_kickbase(): #letzte zu betrachtende Saison im Kickbase-Format z.B. 2025/2026
     current_year = datetime.now().year
     if datetime.now().month >= 8:
@@ -241,7 +265,7 @@ def get_min_season_kickbase(): #letzte zu betrachtende Saison im Kickbase-Format
 
 def get_player_info(token, cookies, player_id):
     response = requests.get(
-        f"{API_URL}/competitions/1/players/{player_id}",
+        f"{API_URL}/competitions/1/players/{player_id}", #/1 für 1. Bundesliga
         headers={"tkn": token, "Accept": "application/json"},
         cookies=cookies
     )
@@ -258,6 +282,7 @@ def get_player_info(token, cookies, player_id):
     return {
         "name": name,
         "team": data.get("tid"),
+        "team_name": data.get("tn"),
         "position": position
     }
     
@@ -307,21 +332,34 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
         return []
     market_values = get_player_market_values(token, cookies, player_id)
     data = response.json()
-    # print(data) # Debug-Ausgabe, um die Struktur der Daten zu überprüfen
-
+    # print(data, "\n\n\n") # Debug-Ausgabe, um die Struktur der Daten zu überprüfen
+    
 
     performance = []
-    for season in data["it"]: # betrachtet die Saison -> für LigaIns Mathing nutzen
+    
+    for season in data["it"]: 
         season_str = season["ti"]
-        if(season_str != taget_season): # wenn Saison nicht die gesuchte Saison -> nächste Saison betrachten
+        if season_str != taget_season: 
             continue
+            
+        historical_team_id = season.get("sid") 
+        
+        seen_matchdays = set() 
+
         for game in season["ph"]:
-            if(game.get("mp") is None): # Wenn kein Eintrag für Spielzeit -> Spiel liegt in Zukunft -> nicht betrachten
+            if game.get("mp") is None: 
                 break 
+                
             matchday = game.get("day")
+
+            # Duplikate überspringen        
+            if matchday in seen_matchdays:
+                continue
+            seen_matchdays.add(matchday) # Spieltag als "gesehen" markieren
+
             date = game.get("md")
-            point = game.get("p") # wenn nicht gespielt -> none 
-            minutes_str = game.get("mp") # Spielzeit
+            point = game.get("p") 
+            minutes_str = game.get("mp") 
             minutes = int(minutes_str.replace("'", "")) if minutes_str else 0
             points_per_minute = point / minutes if minutes > 0 else None
 
@@ -332,13 +370,29 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
             else:
                 points_per_value = None
 
-            t1 = game.get("t1")
-            t2 = game.get("t2")
-            t1g = game.get("t1g")
-            t2g = game.get("t2g")
+            t1 = str(game.get("t1")) # Teamid Team 1
+            t2 = str(game.get("t2")) # Teamid Team 2
+            t1g = game.get("t1g") # Tore Team 1
+            t2g = game.get("t2g") # Tored Team 2
 
-            own_goals = t1g if team_id == t1 else t2g
-            enemy_goals = t2g if team_id == t1 else t1g
+            for team_id in [t1, t2]:
+                if team_id not in KICKBASE_ID_TO_NAME:
+                    print(f"Unbekannte Team-ID gefunden: {team_id} in matchday {matchday}") 
+                    new_team_name = input(f"Bitte Name von unbekannten Teamid {team_id} oder 'exit' zum abbrechen eingeben: ")
+
+                    if new_team_name.lower() == 'exit':
+                        print("Skript wurde manuell abgebrochen.")
+                        return
+                    KICKBASE_ID_TO_NAME[team_id] = new_team_name
+                    save_team_mapping(KICKBASE_ID_TO_NAME)
+                    print(f"{team_id}: {new_team_name} gespeichert")
+
+            team1_name = KICKBASE_ID_TO_NAME[t1]
+            team2_name = KICKBASE_ID_TO_NAME[t2]
+
+            # historical_team_id falls Transfer stattfand
+            own_goals = t1g if historical_team_id == t1 else t2g
+            enemy_goals = t2g if historical_team_id == t1 else t1g
             match_result = 1 if own_goals > enemy_goals else -1 if own_goals < enemy_goals else 0 
             # 1 = Sieg, 0 = Unentschieden, -1 = Niederlage
             
@@ -353,6 +407,8 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
                 "market_value": current_market_value,
                 "points_per_value": points_per_value,
                 "team1": t1,
+                "team1_name": team1_name,
+                "team2_name": team2_name,
                 "team2": t2,
                 "goals_own_team": own_goals,
                 "goals_enemy_team": enemy_goals,
@@ -379,7 +435,9 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
             "market_value": stats_kickbase[i]["market_value"],
             "points_per_value": stats_kickbase[i]["points_per_value"],
             "team1": stats_kickbase[i]["team1"],
+            "team1_name": stats_kickbase[i]["team1_name"],
             "team2": stats_kickbase[i]["team2"],
+            "team2_name": stats_kickbase[i]["team2_name"],
             "goals_own_team": stats_kickbase[i]["goals_own_team"],
             "goals_enemy_team": stats_kickbase[i]["goals_enemy_team"],
             "match_result": stats_kickbase[i]["match_result"],
