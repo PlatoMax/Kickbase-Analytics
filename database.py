@@ -21,10 +21,10 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS team_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Teamname TEXT,
+            Teamname TEXT NOT NULL,
             Tabellenplatz INTEGER,
-            matchday INTEGER,
-            season TEXT,
+            matchday INTEGER NOT NULL,
+            season TEXT NOT NULL,
             points INTEGER,
             goals INTEGER,
             goals_conceded INTEGER,
@@ -64,7 +64,9 @@ def create_tables():
             form_match_5_points INTEGER,
             form_match_5_goals INTEGER,
             form_match_5_goals_conceded INTEGER,
-            form_match_5_Heimvorteil INTEGER
+            form_match_5_Heimvorteil INTEGER,
+            
+            UNIQUE(Teamname, season, matchday)
         )
     """)
     cursor.execute("""
@@ -139,7 +141,8 @@ def create_tables():
             fehler_vor_gegentor INTEGER,
             geblockte_baelle INTEGER,
             
-            FOREIGN KEY (player_id) REFERENCES players(id)
+            FOREIGN KEY (player_id) REFERENCES players(id),
+            UNIQUE(player_id, season, matchday)
         )
     """)
 
@@ -187,7 +190,8 @@ def create_tables():
             
             fehler_vor_gegentor INTEGER,
             
-            FOREIGN KEY (player_id) REFERENCES players(id)
+            FOREIGN KEY (player_id) REFERENCES players(id),
+            UNIQUE(player_id, season, matchday)
         )
     """)
 
@@ -201,10 +205,15 @@ if __name__ == "__main__":
 def save_teams(name, link_onefootball, link_liga_insider): 
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-                   INSERT INTO teams (name, link_onefootball, link_liga_insider)
-                   VALUES (?, ?, ?)
-                   """, (name, link_onefootball, link_liga_insider))
+    sql = """
+        INSERT INTO teams (name, link_onefootball, link_liga_insider)
+        VALUES (?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET
+            link_onefootball = excluded.link_onefootball,
+            link_liga_insider = excluded.link_liga_insider
+    """
+    
+    cursor.execute(sql, (name, link_onefootball, link_liga_insider))
     conn.commit()
     conn.close()
 
@@ -271,6 +280,45 @@ def save_player_stats_field(player_id, stat):
             :schussgenauigkeit, :schussgenauigkeit_gesamt,
             :fehler_vor_gegentor, :geblockte_baelle
         )
+        ON CONFLICT(player_id, season, matchday) DO UPDATE SET
+            points = excluded.points,
+            minutes = excluded.minutes,
+            points_per_minute = excluded.points_per_minute,
+            points_per_value = excluded.points_per_value,
+            goals_own_team = excluded.goals_own_team,
+            goals_enemy_team = excluded.goals_enemy_team,
+            match_result = excluded.match_result,
+            goals = excluded.goals,
+            assists = excluded.assists,
+            yellow_cards = excluded.yellow_cards,
+            yellow_red_cards = excluded.yellow_red_cards,
+            red_cards = excluded.red_cards,
+            ligaInsider_points = excluded.ligaInsider_points,
+            grade = excluded.grade,
+            status = excluded.status,
+            erfolgreiche_paesse = excluded.erfolgreiche_paesse,
+            paesse_gesamt = excluded.paesse_gesamt,
+            gewonnene_zweikaempfe = excluded.gewonnene_zweikaempfe,
+            gewonnene_zweikaempfe_gesamt = excluded.gewonnene_zweikaempfe_gesamt,
+            gewonnene_luftkaempfe = excluded.gewonnene_luftkaempfe,
+            gewonnene_luftkaempfe_gesamt = excluded.gewonnene_luftkaempfe_gesamt,
+            erfolgreiche_tacklings = excluded.erfolgreiche_tacklings,
+            tacklings_gesamt = excluded.tacklings_gesamt,
+            begangene_fouls = excluded.begangene_fouls,
+            geklaerte_baelle = excluded.geklaerte_baelle,
+            abgefangene_baelle = excluded.abgefangene_baelle,
+            balleroberungen = excluded.balleroberungen,
+            ballverluste = excluded.ballverluste,
+            erfolgreiche_dribblings = excluded.erfolgreiche_dribblings,
+            dribblings_gesamt = excluded.dribblings_gesamt,
+            torschuss_vorlagen = excluded.torschuss_vorlagen,
+            kreierte_grosschancen = excluded.kreierte_grosschancen,
+            schuesse_aufs_tor = excluded.schuesse_aufs_tor,
+            schussgenauigkeit = excluded.schussgenauigkeit,
+            schussgenauigkeit_gesamt = excluded.schussgenauigkeit_gesamt,
+            fehler_vor_gegentor = excluded.fehler_vor_gegentor,
+            geblockte_baelle = excluded.geblockte_baelle
+        
     """
     
     cursor.execute(sql, stat_to_insert)
@@ -317,7 +365,36 @@ def save_player_stats_gk(player_id, stat):
             :grosschancen_pariert, :grosschancen_gesamt,
             :fehler_vor_gegentor
         )
+        ON CONFLICT(player_id, season, matchday) DO UPDATE SET
+            points = excluded.points,
+            minutes = excluded.minutes,
+            points_per_minute = excluded.points_per_minute,
+            points_per_value = excluded.points_per_value,
+            goals_own_team = excluded.goals_own_team,
+            goals_enemy_team = excluded.goals_enemy_team,
+            match_result = excluded.match_result,
+            goals = excluded.goals,
+            assists = excluded.assists,
+            yellow_cards = excluded.yellow_cards,
+            yellow_red_cards = excluded.yellow_red_cards,
+            red_cards = excluded.red_cards,
+            ligaInsider_points = excluded.ligaInsider_points,
+            grade = excluded.grade,
+            status = excluded.status,
+            abgewehrte_schuesse = excluded.abgewehrte_schuesse,
+            abgewehrte_schuesse_gesamt = excluded.abgewehrte_schuesse_gesamt,
+            paraden = excluded.paraden,
+            weisse_weste = excluded.weisse_weste,
+            strafraum_beherrschung = excluded.strafraum_beherrschung,
+            strafraum_beherrschung_gesamt = excluded.strafraum_beherrschung_gesamt,
+            abgewehrte_elfmeter = excluded.abgewehrte_elfmeter,
+            elfmeter_gesamt = excluded.elfmeter_gesamt,
+            grosschancen_pariert = excluded.grosschancen_pariert,
+            grosschancen_gesamt = excluded.grosschancen_gesamt,
+            fehler_vor_gegentor = excluded.fehler_vor_gegentor
+
     """
+    
     
     cursor.execute(sql, stat_to_insert)
     
@@ -329,11 +406,13 @@ def get_last_matchday_fieldplayer(player_id):
     '''In Datenbank schauen was der letzte Spieltag war, Output: (date, season)'''
     conn = sqlite3.connect('kickbase.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT date, season FROM player_stats_field WHERE player_id = ? ORDER BY date DESC LIMIT 1", (player_id))
+    cursor.execute("SELECT date, season FROM player_stats_field WHERE player_id = ? ORDER BY date DESC LIMIT 1", (player_id,))
     result = cursor.fetchone()
     if result:
+        conn.close()
         return result[0], result[1]  # [date, season]
     else:
+        conn.close()
         return None, None
     
 
@@ -405,6 +484,7 @@ def save_team_stats(merged_team_stats):
             :form_match_4_points, :form_match_4_goals, :form_match_4_goals_conceded, :form_match_4_Heimvorteil, 
             :form_match_5_points, :form_match_5_goals, :form_match_5_goals_conceded, :form_match_5_Heimvorteil
         )
+        ON CONFLICT(Teamname, season, matchday) DO NOTHING
     """
     try: 
         cursor.executemany(sql, merged_team_stats)
