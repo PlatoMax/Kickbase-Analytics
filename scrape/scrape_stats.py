@@ -283,6 +283,7 @@ def get_player_info(token, cookies, player_id):
         "name": name,
         "team": data.get("tid"),
         "team_name": data.get("tn"),
+        "team_id": data.get("tid"),
         "position": position
     }
     
@@ -521,6 +522,8 @@ OPENLIGADB_TO_KICKBASE = {
     "FC St. Pauli": "St. Pauli", 
     "VfL Wolfsburg": "Wolfsburg",
     "1. FC Heidenheim 1846": "Heidenheim",
+    "Holstein Kiel": "Kiel",
+    "VfL Bochum": "Bochum"
 }
 
 def kb_season_to_openLiga_season(kb_season):

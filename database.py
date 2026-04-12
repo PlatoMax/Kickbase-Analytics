@@ -2,6 +2,7 @@ import sqlite3
 
 def get_connection():
     conn = sqlite3.connect("kickbase.db")
+    conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
 def create_tables(): 
@@ -11,9 +12,8 @@ def create_tables():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS teams (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY,  
             name TEXT NOT NULL UNIQUE,
-            link_onefootball TEXT,
             link_liga_insider TEXT
         )
     """)
@@ -202,20 +202,23 @@ if __name__ == "__main__":
     create_tables()
     print("Tabellen erstellt!")
 
-def save_teams(name, link_onefootball, link_liga_insider): 
+def save_teams(team_id, name, link_liga_insider):  
     conn = get_connection()
     cursor = conn.cursor()
     sql = """
-        INSERT INTO teams (name, link_onefootball, link_liga_insider)
-        VALUES (?, ?, ?)
-        ON CONFLICT(name) DO UPDATE SET
-            link_onefootball = excluded.link_onefootball,
+        INSERT INTO teams (id, name, link_liga_insider)
+        VALUES (?, ?, ?)  
+        ON CONFLICT(id) DO UPDATE SET  
+            name = excluded.name,      
             link_liga_insider = excluded.link_liga_insider
     """
-    
-    cursor.execute(sql, (name, link_onefootball, link_liga_insider))
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute(sql, (team_id, name, link_liga_insider))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Fehler beim Speichern von Team {name}: {e}")
+    finally:
+        conn.close()
 
 def clear_teams(): 
     conn = get_connection()
@@ -404,9 +407,21 @@ def save_player_stats_gk(player_id, stat):
 
 def get_last_matchday_fieldplayer(player_id):
     '''In Datenbank schauen was der letzte Spieltag war, Output: (date, season)'''
-    conn = sqlite3.connect('kickbase.db')
+    conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT date, season FROM player_stats_field WHERE player_id = ? ORDER BY date DESC LIMIT 1", (player_id,))
+    result = cursor.fetchone()
+    if result:
+        conn.close()
+        return result[0], result[1]  # [date, season]
+    else:
+        conn.close()
+        return None, None
+    
+def get_last_matchday_gk(player_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT date, season FROM player_stats_gk WHERE player_id = ? ORDER BY date DESC LIMIT 1", (player_id,))
     result = cursor.fetchone()
     if result:
         conn.close()

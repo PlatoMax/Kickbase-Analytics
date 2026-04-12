@@ -78,7 +78,7 @@ def get_all_teams_kickbase(token, cookies):
         cookies=cookies)
     
     if(response.status_code != 200):
-        print("Request get_all_teams fehlgeschlagen")
+        print(f"Request get_all_teams fehlgeschlagen. Fehlercode: {response.status_code}")
         return []
     
     data = response.json()
@@ -117,8 +117,8 @@ def fetch_kickbase_players(token, cookies):
     return players
     
 
-def fetch_ligainsider_players():
-    '''Holt alle Spieler aus Ligainsider'''
+def fetch_ligainsider_teams():
+    '''Holt alle Teams aus Ligainsider'''
     urlInsider = "https://www.ligainsider.de/bundesliga/tabelle/"
     sourceInsider = requests.get(urlInsider)
     
@@ -127,7 +127,7 @@ def fetch_ligainsider_players():
         return []
         
     soupInsider = BeautifulSoup(sourceInsider.text, 'html.parser')
-    players = []
+    li_teams = []
 
     # Tabelle nutzen um alle Teams und deren Teamlinks zu holen
     for team in soupInsider.find_all('tr', class_="table_row"):
@@ -137,6 +137,20 @@ def fetch_ligainsider_players():
         teamName = team_element.get_text()
         teamlink = f"https://www.ligainsider.de" + team_element.get("href") + "kader/"
         
+        li_teams.append({
+            "team_name": teamName,
+            "link_liga_insider": teamlink
+            })
+    return li_teams
+                
+
+def fetch_ligainsider_players(li_teams):
+    '''Holt alle Spieler aus Ligainsider'''
+    players = []
+
+    for team in li_teams:
+        teamName = team["team_name"]
+        teamlink = team["link_liga_insider"] 
         
         team_req = requests.get(teamlink)
         if team_req.status_code != 200:
@@ -146,22 +160,19 @@ def fetch_ligainsider_players():
         soup_team = BeautifulSoup(team_req.text, 'html.parser')
         
         for player in soup_team.find_all('div', class_="middle_info_box"):
-            
             if not player.find('a'):
                 continue 
                 
             if not player.find('span') or not player.find('strong'):
-                print(f"Unvollständige HTML-Tags bei einem Spieler von {teamName}")
                 continue 
                 
-            
             player_link = f"https://www.ligainsider.de" + player.find('a').get("href")
             
             firstNameInsider = player.find('span').get_text().strip()
             lastNameInsider = player.find('strong').get_text().strip()
             nameInsider = f"{firstNameInsider} {lastNameInsider}"
             
-            normalized_name = normalize_Name(nameInsider)
+            normalized_name = normalize_Name(nameInsider) # Achtung: Stelle sicher, dass die Funktion importiert/vorhanden ist
             
             players.append({
                 "source": "ligainsider", 
@@ -172,8 +183,6 @@ def fetch_ligainsider_players():
             })
             
     return players
-
-
 
 def match_players(list_kickbase, list_ligainsider, ALIAS_MAP, TEAMS_MAPPING): 
     '''Erstellt Matching zwischhen den verschiedenen Quellen'''
