@@ -67,6 +67,7 @@ def create_tables():
             form_match_5_Heimvorteil INTEGER,
             
             UNIQUE(Teamname, season, matchday)
+                   
         )
     """)
     cursor.execute("""
