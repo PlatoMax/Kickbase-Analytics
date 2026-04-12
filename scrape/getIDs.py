@@ -127,7 +127,7 @@ def fetch_ligainsider_teams():
         return []
         
     soupInsider = BeautifulSoup(sourceInsider.text, 'html.parser')
-    li_teams = []
+    li_teams = {}
 
     # Tabelle nutzen um alle Teams und deren Teamlinks zu holen
     for team in soupInsider.find_all('tr', class_="table_row"):
@@ -137,10 +137,8 @@ def fetch_ligainsider_teams():
         teamName = team_element.get_text()
         teamlink = f"https://www.ligainsider.de" + team_element.get("href") + "kader/"
         
-        li_teams.append({
-            "team_name": teamName,
-            "link_liga_insider": teamlink
-            })
+        li_teams[teamName] = teamlink
+            
     return li_teams
                 
 

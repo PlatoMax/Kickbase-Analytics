@@ -16,9 +16,23 @@ token, league_id, cookies = login()
 # Pipeline to fill the team databases
 
 # teams:
+li_teams = fetch_ligainsider_teams()
+kb_teams = get_all_teams_kickbase(token, cookies)
+# print(li_teams)
+# print(kb_teams)
 
+for team in kb_teams:
+    team_name_kb = team["team_name"]
+    team_name_li = TEAMS_MAPPING[team_name_kb]
+
+    team_id = team["team_id"]
+    
+    save_teams(team_id, team_name_kb, li_teams[team_name_li])
+    total_entries_databank += 1
 
 #teams_stats:
+
+
 
 
 
