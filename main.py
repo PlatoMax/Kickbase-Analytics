@@ -18,11 +18,16 @@ def extract_and_save_teamstats(season): #immer als Kickbase Season angeben!
     matchday_data = get_data_matchdays(openliga_season)
     clean_data = clean_matchdays(matchday_data)
 
+    if not clean_data:
+        return 0
+    
+    
     first_matchday = min_matchday(clean_data)
+    last_matchday = clean_data[-1][0]["matchday"]
 
     entries_saved = 0 
 
-    for i in range(first_matchday, 35):
+    for i in range(first_matchday, last_matchday + 1):
         cal_table = calculate_table(clean_data, i)
         table = create_table(cal_table)
         next_opponents = get_next_opponents(matchday_data, i)
@@ -30,8 +35,8 @@ def extract_and_save_teamstats(season): #immer als Kickbase Season angeben!
 
         team_stats = merge_team_stats(table, next_opponents, current_form)
         save_team_stats(team_stats)
-        
-        entries_saved += 1 
+
+        entries_saved += len(team_stats) 
         
     return entries_saved
 
@@ -68,7 +73,7 @@ if datetime.now().month < 8:
 current_season = f"{current_start_year}/{current_start_year + 1}"
 last_season = f"{current_start_year - 1}/{current_start_year}"
 
-total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
+# total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
 total_entries_databank += extract_and_save_teamstats(current_season)
 
 
@@ -88,4 +93,4 @@ print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minute
 # try einabuen bei Checks in den Dictonaries für Daten aus der vergangenheit, z.B. VFL-Bochum aus letztem Jahr nicht im Dictonary
 
 # mehr try except Blöcke einbauen für mögliche Fehler
-# testen ob Einträge in teams_stats DB richtig sind, einfach mal paar Stichprobenarbeit anschauen
+# Backups und Schutzmechanismen für die Datenbanken anlegen. Historische Daten können nicht zurückgeholt werden

@@ -587,7 +587,6 @@ def get_next_opponents(matchdays, current_matchday):
 
 
 def clean_matchdays(matchdays): 
-    #relevante Einträge in matchdays: matchDateTime, team1, team2, matchResults
     stats_matchdays = []
     last_seen_matchday = None
     cur_matchday = []
@@ -674,7 +673,7 @@ def calculate_table(stats_matchdays, matchday_number):
             teamname1 = match.get("team1_name")
             teamname2 = match.get("team2_name")
 
-            if not teamname1 in team_tracker: # stellt sicher, dass das Teeam auch im Dict ist. 
+            if not teamname1 in team_tracker: # stellt sicher, dass das Team auch im Dict ist. 
                 team_tracker[teamname1] = {"matchday": matchday_number, "season": match.get("season"), "points": 0, "goals": 0, "goals_conceded": 0}
 
             if not teamname2 in team_tracker:
