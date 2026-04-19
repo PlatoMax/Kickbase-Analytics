@@ -5,8 +5,7 @@ from scrape.config import API_URL
 from scrape.fetch import login
 from scrape.scrape_stats import *
 from database import *
-import sqlite3
-from scrape.getIDs import fetch_ligainsider_players
+import random
 
 total_entries_databank = 0 # just for fun um Anzahl der Einträge in die Datenbank mitzuzählen
 
@@ -37,9 +36,31 @@ def extract_and_save_teamstats(season): #immer als Kickbase Season angeben!
         save_team_stats(team_stats)
 
         entries_saved += len(team_stats) 
-        
+    print("succesfully saved team_stats für season, ", season)
     return entries_saved
 
+def extract_and_save_playerstats(player, season):
+    db_id = player[0]
+    player_id = player[1]
+    name = player[2]
+    position = player[5]
+    link = player[6]
+    
+    stats_kickbase = get_player_performance_kb(token, cookies, player_id, season)
+    stats_ligainsider = scrape_player_stats_LI(name, position, season, link)
+    goals_grades= get_player_goals_and_grades(name, season, link)
+
+    if not stats_kickbase and not stats_ligainsider:
+        return 0
+
+    merged_stats = merge_all_stats(stats_kickbase, stats_ligainsider, goals_grades, position)
+    
+    if position == 1:
+        save_player_stats_gk(db_id, merged_stats)
+    else:
+        save_player_stats_field(db_id, merged_stats)
+
+    return len(merged_stats) #return nur um zu messen wie viele Einträge in der Datenbank gespeichert werden, hat keinen Nutzen und kann entfernt werden
 
 # Daten holen und in den Datenbanken speichern
 start_time = time.perf_counter() # Just for fun um die Dauer zu sehen
@@ -73,24 +94,68 @@ if datetime.now().month < 8:
 current_season = f"{current_start_year}/{current_start_year + 1}"
 last_season = f"{current_start_year - 1}/{current_start_year}"
 
-# total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
+total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
 total_entries_databank += extract_and_save_teamstats(current_season)
 
 
 
+# Players
+
+players_kb = fetch_kickbase_players(token, cookies, kb_teams)
+players_li = fetch_ligainsider_players(li_teams)
+matches = match_players(players_kb, players_li, ALIAS_MAP, TEAMS_MAPPING)
+save_players(matches)
+total_entries_databank += len(matches)
 
 
 
+# Players stats
+conn = get_connection()
+cursor = conn.cursor()
+cursor.execute("SELECT * FROM players")
+players = cursor.fetchall()
+# Aufbau bei Return: (Datenbank ID, Kickbase-ID, name, team_name, team_id, position, link_liga_insider)
+conn.close()
 
 
+max_retries = 5
+
+for player in players:
+
+    if players.index(player) % 50 == 0 and players.index(player) != 0:
+        pause = random.uniform(60, 150)
+        print(f"Kaffeepause! Skript pausiert für {pause:.0f} Sekunden...")
+        time.sleep(pause)
+
+    for attempt in range(max_retries):
+        try:
+            entries_current = extract_and_save_playerstats(player, current_season)
+            time.sleep(random.uniform(2, 4))
+            entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
+            
+            total_entries_databank += (entries_current + entries_last)
+            
+            print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
+            break # break gilt für attempt Schleife
+        except Exception as e: 
+            print(f"Warnung bei {player[2]} (Versuch {attempt + 1}/{max_retries}): {e}")    
+            
+            if attempt < max_retries - 1:
+                sleep_time = random.uniform(5, 10) * (2 ** attempt)
+                print(f"Warte {sleep_time} Sekunden, bevor es nochmal versucht wird...")
+                time.sleep(sleep_time)
+            else:
+                print(f"\033[91m Fehler: {player[2]} endgültig übersprungen nach {max_retries} Versuchen. \033[0m ")   
+
+    print(f"{players.index(player) + 1} von {len(players)} Spieler abgeschlossen")
+    time.sleep(random.uniform(2,5))            
 
 end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60
 print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minuten:.2f} Minuten gespeichert.")
 
 
-# Add in Player performance his team in that match
-# try einabuen bei Checks in den Dictonaries für Daten aus der vergangenheit, z.B. VFL-Bochum aus letztem Jahr nicht im Dictonary
-
+# todo: 
 # mehr try except Blöcke einbauen für mögliche Fehler
+# mehr Kommentare für besseres Verständnis einfügen
 # Backups und Schutzmechanismen für die Datenbanken anlegen. Historische Daten können nicht zurückgeholt werden

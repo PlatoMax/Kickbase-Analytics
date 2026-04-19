@@ -31,6 +31,7 @@ ALIAS_MAP = {
     # Can be used if the current logic don´t fidn a match betweeen the Kickbase an LigaInsider name. 
     # structure:
     # Name Kickbase : Name LigaInsider
+    "Santos Daiber": "David Santos"
 }
 
 def get_player_id_and_position_kickbase(token, cookies, name):
@@ -90,10 +91,9 @@ def get_all_teams_kickbase(token, cookies):
 
     return teams
 
-def fetch_kickbase_players(token, cookies):
+def fetch_kickbase_players(token, cookies, teams):
     '''Holt alle Spieler aus Kickbase'''
     players = []
-    teams = get_all_teams_kickbase(token, cookies)
     for team in teams:
         team_name = team.get('team_name')
         team_id = team.get('team_id')
@@ -146,9 +146,7 @@ def fetch_ligainsider_players(li_teams):
     '''Holt alle Spieler aus Ligainsider'''
     players = []
 
-    for team in li_teams:
-        teamName = team["team_name"]
-        teamlink = team["link_liga_insider"] 
+    for teamName, teamlink in li_teams.items():
         
         team_req = requests.get(teamlink)
         if team_req.status_code != 200:
@@ -190,12 +188,14 @@ def match_players(list_kickbase, list_ligainsider, ALIAS_MAP, TEAMS_MAPPING):
         name_kb = player_kb["player_name"]
         normalized_name_kb = player_kb["normalized_name"]
         team_kb = player_kb["team_name"]
-        team_li = TEAMS_MAPPING[team_kb]
+        team_li = TEAMS_MAPPING.get(team_kb)
+        if not team_li:
+            continue
 
         if name_kb in ALIAS_MAP: # Level 3: Alias Map
                 name_li = ALIAS_MAP[name_kb]
                 print(f"Match gefunden in Alias Map! Kickbase: {name_kb}, Ligainsider: {name_li} \n\n") #\n\n just for the debugging to see easilier if it works
-                matched_li_player = name_li
+                normalized_name_kb = normalize_Name(name_li)
 
         filtered_players_li = []
         filtered_players_li = [player_li for player_li in list_ligainsider if player_li["team_name"] == team_li]
@@ -207,14 +207,16 @@ def match_players(list_kickbase, list_ligainsider, ALIAS_MAP, TEAMS_MAPPING):
         
             if normalized_name_li in normalized_name_kb: # Level 2: Namen normalisiert sind gleich
                 matched_li_player = cur
+                break
             
             else: # Level 1, Fuzzy
                 score_fuzzy = fuzz.partial_ratio(normalized_name_kb, normalized_name_li)
                 if(score_fuzzy > 80):
                     matched_li_player = cur
+                    break
 
         if matched_li_player: 
-                # print("Match gefunden, Name KB: ", name_kb, " Name LI: ", cur["original_name"])
+                # print("Match gefunden, Name KB: ", name_kb, " Name LI: ", cur["original_name"]) # Nützlich um zu überprüfen ob Matchings funktionieren
                 matches.append({
                     "kickbase_id": player_kb["player_id"],
                     "name": name_kb,
@@ -225,5 +227,5 @@ def match_players(list_kickbase, list_ligainsider, ALIAS_MAP, TEAMS_MAPPING):
                 })
 
         else: 
-            print(f'{name_kb} nicht gefunden. Normalized: {normalized_name_kb} Team: {team_kb} \n\n\n') #3x \n just so you can find the missmatches in the terminal
+            print(f'\033[91m{name_kb} nicht gefunden. Normalized: {normalized_name_kb} Team: {team_kb}\033[0m \n\n\n') #3x \n just so you can find the missmatches in the terminal
     return matches

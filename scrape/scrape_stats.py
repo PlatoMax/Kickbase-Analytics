@@ -76,19 +76,10 @@ def get_gameday_number_LI(row):
 def kickbase_season_to_ligainsider(season_kickbase): # Beispiel: 2025/2026 -> 2025-2026
     return season_kickbase.replace("/", "-") 
 
-def scrape_player_stats_LI(name, position, season_kickbase): 
+def scrape_player_stats_LI(name, position, season_kickbase, link): 
     season_ligaInsider = kickbase_season_to_ligainsider(season_kickbase)
-    conn = sqlite3.connect('kickbase.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT link_liga_insider FROM players WHERE name = ?", (name,))
-    link_tupel = cursor.fetchone() #fetchone returned ein tupel, daher in str umwandeln 
-    
-    if link_tupel is None:
-        print(f'Für Spieler {name} nichts in Datenbank gefunden')
-        return []
-    
-    link_str = link_tupel[0] 
-    URL = f'{link_str}bundesliga_daten/saison-{season_ligaInsider}/'
+
+    URL = f'{link}bundesliga_daten/saison-{season_ligaInsider}/'
     responose = requests.get(URL)
     if(responose.status_code != 200):
         print(f"Fehler beim Abrufen der Seite für {name} in Saison {season_ligaInsider}")
@@ -158,14 +149,10 @@ def scrape_player_stats_LI(name, position, season_kickbase):
         stats.append(stat)    
     return stats  
 
-def get_player_goals_and_grades(name, season_kickbase):
+def get_player_goals_and_grades(name, season_kickbase, link):
     season_ligaInsider = kickbase_season_to_ligainsider(season_kickbase)
-    conn = sqlite3.connect('kickbase.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT link_liga_insider FROM players WHERE name = ?", (name,))
-    link_tupel = cursor.fetchone() 
-    link_str = link_tupel[0] 
-    URL = f'{link_str}noten_und_einsatzhistorie/saison-{season_ligaInsider}'
+    
+    URL = f'{link}noten_und_einsatzhistorie/saison-{season_ligaInsider}'
     response = requests.get(URL)
     if response.status_code != 200:
         print(f"Fehler beim Abrufen der Seite für {name} in Saison {season_ligaInsider}")
@@ -321,7 +308,7 @@ def get_market_value_at_date(market_values, target_date):
             break 
     return result
         
-def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
+def get_player_performance_kb(token, cookies, player_id, target_season):
     response = requests.get(
         f"{API_URL}/competitions/1/players/{player_id}/performance",
         headers={"tkn": token, "Accept": "application/json"},
@@ -340,17 +327,16 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
     
     for season in data["it"]: 
         season_str = season["ti"]
-        if season_str != taget_season: 
+        if season_str != target_season or season["n"] != "Bundesliga": 
             continue
             
-        historical_team_id = season.get("sid") 
-        
         seen_matchdays = set() 
 
         for game in season["ph"]:
             if game.get("mp") is None: 
                 break 
-                
+            
+            historical_team_id = str(game.get("pt"))
             matchday = game.get("day")
 
             # Duplikate überspringen        
@@ -378,7 +364,7 @@ def get_player_performance_kb(token, cookies, player_id, team_id, taget_season):
 
             for team_id in [t1, t2]:
                 if team_id not in KICKBASE_ID_TO_NAME:
-                    print(f"Unbekannte Team-ID gefunden: {team_id} in matchday {matchday}") 
+                    print(f"Unbekannte Team-ID gefunden: {team_id} in matchday {matchday}, season {target_season}") 
                     new_team_name = input(f"Bitte Name von unbekannten Teamid {team_id} oder 'exit' zum abbrechen eingeben: ")
 
                     if new_team_name.lower() == 'exit':

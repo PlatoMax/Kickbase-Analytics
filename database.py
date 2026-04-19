@@ -1,4 +1,5 @@
 import sqlite3
+import re
 
 def get_connection():
     conn = sqlite3.connect("kickbase.db")
@@ -73,7 +74,7 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS players (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            kickbase_id TEXT,
+            kickbase_id TEXT UNIQUE, 
             name TEXT,
             team_name TEXT,
             team_id INTEGER,
@@ -243,12 +244,13 @@ def clear_player_stats_field():
     conn.commit()
     conn.close()
 
-def save_player_stats_field(player_id, stat):
+def save_player_stats_field(player_id, stats_list):
     
-    conn = sqlite3.connect('kickbase.db')
+    if not stats_list:
+        return
+
+    conn = get_connection() 
     cursor = conn.cursor()
-    stat_to_insert = stat.copy()
-    stat_to_insert['player_id'] = player_id
 
     sql = """
         INSERT INTO player_stats_field (
@@ -322,12 +324,22 @@ def save_player_stats_field(player_id, stat):
             schussgenauigkeit_gesamt = excluded.schussgenauigkeit_gesamt,
             fehler_vor_gegentor = excluded.fehler_vor_gegentor,
             geblockte_baelle = excluded.geblockte_baelle
-        
     """
     
+    expected_keys = re.findall(r':([a-zA-Z0-9_]+)', sql)
+
+    for single_stat in stats_list:
+        stat_to_insert = single_stat.copy()
+        stat_to_insert['player_id'] = player_id
+
+    for key in expected_keys:
+            if key not in stat_to_insert:
+                stat_to_insert[key] = None
+
     cursor.execute(sql, stat_to_insert)
+
     conn.commit()
-    conn.close()   
+    conn.close()
                      
 
 def clear_player_stats_gk():
@@ -337,11 +349,13 @@ def clear_player_stats_gk():
     conn.commit()
     conn.close()
 
-def save_player_stats_gk(player_id, stat):
-    conn = sqlite3.connect('kickbase.db')
+def save_player_stats_gk(player_id, stats_list):
+    
+    if not stats_list:
+        return
+
+    conn = get_connection() 
     cursor = conn.cursor()
-    stat_to_insert = stat.copy()
-    stat_to_insert['player_id'] = player_id
 
     sql = """
         INSERT INTO player_stats_gk (
@@ -396,11 +410,19 @@ def save_player_stats_gk(player_id, stat):
             grosschancen_pariert = excluded.grosschancen_pariert,
             grosschancen_gesamt = excluded.grosschancen_gesamt,
             fehler_vor_gegentor = excluded.fehler_vor_gegentor
-
     """
     
-    
-    cursor.execute(sql, stat_to_insert)
+    expected_keys = re.findall(r':([a-zA-Z0-9_]+)', sql)
+
+    for single_stat in stats_list:
+        stat_to_insert = single_stat.copy()
+        stat_to_insert['player_id'] = player_id
+        
+        for key in expected_keys:
+            if key not in stat_to_insert:
+                stat_to_insert[key] = None
+
+        cursor.execute(sql, stat_to_insert)
     
     conn.commit()
     conn.close()
@@ -453,16 +475,25 @@ def save_players(matches):
 
     conn = get_connection()
     cursor = conn.cursor()
+    
     sql = """
         INSERT INTO players (kickbase_id, name, team_name, team_id, position, link_liga_insider)
         VALUES (:kickbase_id, :name, :team_name, :team_id, :position, :link_liga_insider)
-        """
+        ON CONFLICT(kickbase_id) DO UPDATE SET
+            name = excluded.name,
+            team_name = excluded.team_name,
+            team_id = excluded.team_id,
+            position = excluded.position,
+            link_liga_insider = excluded.link_liga_insider
+    """
+    
     try: 
         cursor.executemany(sql, matches)
         conn.commit()
+        print(f"{len(matches)} Spieler erfolgreich gespeichert oder geupdated!")
     
     except sqlite3.Error as e:
-        print(f'Fehler beim einfügügen der Spieler: {e}')
+        print(f'Fehler beim Einfügen der Spieler: {e}')
     
     finally:
         conn.close()
