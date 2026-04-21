@@ -94,7 +94,7 @@ if datetime.now().month < 8:
 current_season = f"{current_start_year}/{current_start_year + 1}"
 last_season = f"{current_start_year - 1}/{current_start_year}"
 
-total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
+# total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
 total_entries_databank += extract_and_save_teamstats(current_season)
 
 

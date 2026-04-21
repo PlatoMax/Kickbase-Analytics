@@ -408,75 +408,82 @@ def get_player_performance_kb(token, cookies, player_id, target_season):
 
 def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, position):
     merged_stats = []
-    # Ziel: Ein einheitlicher Datensatz pro Spieltag, der alle relevanten Informationen enthält
-    for i in range(len(stats_kickbase)): # für jeden Spieltag 
-        if(stats_kickbase[i].get("market_value") is None): # Spieltage ohne Marktwert überspringen
-                continue
+    
+    for kb_match in stats_kickbase:
+        current_matchday = kb_match.get("matchday") # aktuellen Matchday anhand kickbase finden
+               
+        matching_li_match = next((li for li in stats_ligainsider if li.get("matchday") == current_matchday), {}) # passenden Spieltag aus ligainsider_stats
+        
+        matching_gg_match = next((gg for gg in goals_and_grades if gg.get("matchday") == current_matchday), {}) # passenden Spieltag aus goals_and_grades
+        
         base_stat = {
-            "season": stats_kickbase[i]["season"],
-            "matchday": stats_kickbase[i]["matchday"],
-            "date": stats_kickbase[i]["date"],
-            "points": stats_kickbase[i]["points"],
-            "minutes": stats_kickbase[i]["minutes"],
-            "points_per_minute": stats_kickbase[i]["points_per_minute"],
-            "market_value": stats_kickbase[i]["market_value"],
-            "points_per_value": stats_kickbase[i]["points_per_value"],
-            "team1": stats_kickbase[i]["team1"],
-            "team1_name": stats_kickbase[i]["team1_name"],
-            "team2": stats_kickbase[i]["team2"],
-            "team2_name": stats_kickbase[i]["team2_name"],
-            "goals_own_team": stats_kickbase[i]["goals_own_team"],
-            "goals_enemy_team": stats_kickbase[i]["goals_enemy_team"],
-            "match_result": stats_kickbase[i]["match_result"],
-            "goals": goals_and_grades[i]["goals"],
-            "assists": goals_and_grades[i]["assists"],
-            "yellow_cards": goals_and_grades[i]["yellow_cards"],
-            "yellow_red_cards": goals_and_grades[i]["yellow_red_cards"],
-            "red_cards": goals_and_grades[i]["red_cards"],
-            "ligaInsider_points": goals_and_grades[i]["ligaInsider_points"],
-            "grade": goals_and_grades[i]["grade"],
+            "season": kb_match.get("season"),
+            "matchday": current_matchday,
+            "date": kb_match.get("date"),
+            "points": kb_match.get("points"),
+            "minutes": kb_match.get("minutes"),
+            "points_per_minute": kb_match.get("points_per_minute"),
+            "market_value": kb_match.get("market_value"),
+            "points_per_value": kb_match.get("points_per_value"),
+            "team1": kb_match.get("team1"),
+            "team1_name": kb_match.get("team1_name"),
+            "team2": kb_match.get("team2"),
+            "team2_name": kb_match.get("team2_name"),
+            "goals_own_team": kb_match.get("goals_own_team"),
+            "goals_enemy_team": kb_match.get("goals_enemy_team"),
+            "match_result": kb_match.get("match_result"),
+            
+            "goals": matching_gg_match.get("goals", 0),
+            "assists": matching_gg_match.get("assists", 0),
+            "yellow_cards": matching_gg_match.get("yellow_cards", 0),
+            "yellow_red_cards": matching_gg_match.get("yellow_red_cards", 0),
+            "red_cards": matching_gg_match.get("red_cards", 0),
+            "ligaInsider_points": matching_gg_match.get("ligaInsider_points", 0),
+            "grade": matching_gg_match.get("grade", 0.0),
         }
+        
         if position == 1: # Torwart
             base_stat.update({
-                "status": stats_ligainsider[i].get("status", "unbekannt"),
-                "abgewehrte_schuesse": stats_ligainsider[i].get("abgewehrte_schuesse", 0),
-                "schuesse_gesamt": stats_ligainsider[i].get("abgewehrte_schuesse_gesamt", 0),
-                "paraden": stats_ligainsider[i].get("paraden", 0),
-                "weisse_weste": stats_ligainsider[i].get("weisse_weste", 0),
-                "strafraum_beherrschung": stats_ligainsider[i].get("strafraum_beherrschung", 0),
-                "strafraum_beherrschung_gesamt": stats_ligainsider[i].get("strafraum_beherrschung_gesamt", 0),
-                "abgewehrte_elfmeter": stats_ligainsider[i].get("abgewehrte_elfmeter", 0),
-                "elfmeter_gesamt": stats_ligainsider[i].get("abgewehrte_elfmeter_gesamt", 0),
-                "grosschancen_pariert": stats_ligainsider[i].get("grosschancen_pariert", 0),
-                "grosschancen_gesamt": stats_ligainsider[i].get("grosschancen_pariert_gesamt", 0),
-                "fehler_vor_gegentor": stats_ligainsider[i].get("fehler_vor_gegentor", 0)
+                "status": matching_li_match.get("status", "unbekannt"),
+                "abgewehrte_schuesse": matching_li_match.get("abgewehrte_schuesse", 0),
+                "schuesse_gesamt": matching_li_match.get("abgewehrte_schuesse_gesamt", 0),
+                "paraden": matching_li_match.get("paraden", 0),
+                "weisse_weste": matching_li_match.get("weisse_weste", 0),
+                "strafraum_beherrschung": matching_li_match.get("strafraum_beherrschung", 0),
+                "strafraum_beherrschung_gesamt": matching_li_match.get("strafraum_beherrschung_gesamt", 0),
+                "abgewehrte_elfmeter": matching_li_match.get("abgewehrte_elfmeter", 0),
+                "elfmeter_gesamt": matching_li_match.get("abgewehrte_elfmeter_gesamt", 0),
+                "grosschancen_pariert": matching_li_match.get("grosschancen_pariert", 0),
+                "grosschancen_gesamt": matching_li_match.get("grosschancen_pariert_gesamt", 0),
+                "fehler_vor_gegentor": matching_li_match.get("fehler_vor_gegentor", 0)
             })  
         else: # Feldspieler
             base_stat.update({
-                "status": stats_ligainsider[i].get("status", "unbekannt"),
-                "erfolgreiche_paesse": stats_ligainsider[i].get("erfolgreiche_paesse", 0),
-                "paesse_gesamt": stats_ligainsider[i].get("erfolgreiche_paesse_gesamt", 0),              
-                "gewonnene_zweikaempfe": stats_ligainsider[i].get("gewonnene_zweikaempfe", 0),
-                "gewonnene_zweikaempfe_gesamt": stats_ligainsider[i].get("gewonnene_zweikaempfe_gesamt", 0),
-                "gewonnene_luftkaempfe": stats_ligainsider[i].get("gewonnene_luftkaempfe", 0),
-                "gewonnene_luftkaempfe_gesamt": stats_ligainsider[i].get("gewonnene_luftkaempfe_gesamt", 0),
-                "erfolgreiche_tacklings": stats_ligainsider[i].get("erfolgreiche_tacklings", 0),
-                "tacklings_gesamt": stats_ligainsider[i].get("erfolgreiche_tacklings_gesamt", 0),
-                "begangene_fouls": stats_ligainsider[i].get("begangene_fouls", 0),
-                "geklaerte_baelle": stats_ligainsider[i].get("geklaerte_baelle", 0),
-                "abgefangene_baelle": stats_ligainsider[i].get("abgefangene_baelle", 0),
-                "balleroberungen": stats_ligainsider[i].get("balleroberungen", 0),
-                "ballverluste": stats_ligainsider[i].get("ballverluste", 0),
-                "erfolgreiche_dribblings": stats_ligainsider[i].get("erfolgreiche_dribblings", 0),
-                "dribblings_gesamt": stats_ligainsider[i].get("erfolgreiche_dribblings_gesamt", 0),
-                "torschuss_vorlagen": stats_ligainsider[i].get("torschuss_vorlagen", 0),
-                "kreierte_grosschancen": stats_ligainsider[i].get("kreierte_grosschancen", 0),
-                "schuesse_aufs_tor": stats_ligainsider[i].get("schuesse_aufs_tor", 0),
-                "schussgenauigkeit": stats_ligainsider[i].get("schussgenauigkeit", 0),
-                "schussgenauigkeit_gesamt": stats_ligainsider[i].get("schussgenauigkeit_gesamt", 0),
-                "fehler_vor_gegentor": stats_ligainsider[i].get("fehler_vor_gegentor", 0),
-                "geblockte_baelle": stats_ligainsider[i].get("geblockte_baelle", 0)
+                "status": matching_li_match.get("status", "unbekannt"),
+                "erfolgreiche_paesse": matching_li_match.get("erfolgreiche_paesse", 0),
+                "paesse_gesamt": matching_li_match.get("erfolgreiche_paesse_gesamt", 0),              
+                "gewonnene_zweikaempfe": matching_li_match.get("gewonnene_zweikaempfe", 0),
+                "gewonnene_zweikaempfe_gesamt": matching_li_match.get("gewonnene_zweikaempfe_gesamt", 0),
+                "gewonnene_luftkaempfe": matching_li_match.get("gewonnene_luftkaempfe", 0),
+                "gewonnene_luftkaempfe_gesamt": matching_li_match.get("gewonnene_luftkaempfe_gesamt", 0),
+                "erfolgreiche_tacklings": matching_li_match.get("erfolgreiche_tacklings", 0),
+                "tacklings_gesamt": matching_li_match.get("erfolgreiche_tacklings_gesamt", 0),
+                "begangene_fouls": matching_li_match.get("begangene_fouls", 0),
+                "geklaerte_baelle": matching_li_match.get("geklaerte_baelle", 0),
+                "abgefangene_baelle": matching_li_match.get("abgefangene_baelle", 0),
+                "balleroberungen": matching_li_match.get("balleroberungen", 0),
+                "ballverluste": matching_li_match.get("ballverluste", 0),
+                "erfolgreiche_dribblings": matching_li_match.get("erfolgreiche_dribblings", 0),
+                "dribblings_gesamt": matching_li_match.get("erfolgreiche_dribblings_gesamt", 0),
+                "torschuss_vorlagen": matching_li_match.get("torschuss_vorlagen", 0),
+                "kreierte_grosschancen": matching_li_match.get("kreierte_grosschancen", 0),
+                "schuesse_aufs_tor": matching_li_match.get("schuesse_aufs_tor", 0),
+                "schussgenauigkeit": matching_li_match.get("schussgenauigkeit", 0),
+                "schussgenauigkeit_gesamt": matching_li_match.get("schussgenauigkeit_gesamt", 0),
+                "fehler_vor_gegentor": matching_li_match.get("fehler_vor_gegentor", 0),
+                "geblockte_baelle": matching_li_match.get("geblockte_baelle", 0)
             })
+            
         merged_stats.append(base_stat)
         
     return merged_stats
