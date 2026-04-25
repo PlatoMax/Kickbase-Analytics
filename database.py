@@ -332,11 +332,11 @@ def save_player_stats_field(player_id, stats_list):
         stat_to_insert = single_stat.copy()
         stat_to_insert['player_id'] = player_id
 
-    for key in expected_keys:
+        for key in expected_keys:
             if key not in stat_to_insert:
                 stat_to_insert[key] = None
 
-    cursor.execute(sql, stat_to_insert)
+        cursor.execute(sql, stat_to_insert)
 
     conn.commit()
     conn.close()

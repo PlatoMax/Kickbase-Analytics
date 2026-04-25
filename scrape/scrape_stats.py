@@ -192,7 +192,7 @@ def get_player_goals_and_grades(name, season_kickbase, link):
             if not grade_found:
                 # Bank-Fall: Spieler hat keine Note -> alle Werte 0
                 data.append({
-                    "spieltag": spieltag_text,
+                    "spieltag": int(spieltag_text.replace('.', '').strip()),
                     "goals": 0,
                     "assists": 0,
                     "yellow_cards": 0,
@@ -204,7 +204,7 @@ def get_player_goals_and_grades(name, season_kickbase, link):
                 })
             else:
                 data.append({
-                    "spieltag": spieltag_text,
+                    "spieltag": int(spieltag_text.replace('.', '').strip()),
                     "goals": safe_int(goals),
                     "assists": safe_int(assists),
                     "yellow_cards": safe_int(yellow_cards),
@@ -412,9 +412,9 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
     for kb_match in stats_kickbase:
         current_matchday = kb_match.get("matchday") # aktuellen Matchday anhand kickbase finden
                
-        matching_li_match = next((li for li in stats_ligainsider if li.get("matchday") == current_matchday), {}) # passenden Spieltag aus ligainsider_stats
+        matching_li_match = next((li for li in stats_ligainsider if li.get("spieltag") == current_matchday), {}) # passenden Spieltag aus ligainsider_stats
         
-        matching_gg_match = next((gg for gg in goals_and_grades if gg.get("matchday") == current_matchday), {}) # passenden Spieltag aus goals_and_grades
+        matching_gg_match = next((gg for gg in goals_and_grades if gg.get("spieltag") == current_matchday), {}) # passenden Spieltag aus goals_and_grades
         
         base_stat = {
             "season": kb_match.get("season"),

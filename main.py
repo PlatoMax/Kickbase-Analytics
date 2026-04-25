@@ -43,7 +43,7 @@ def extract_and_save_playerstats(player, season):
     db_id = player[0]
     player_id = player[1]
     name = player[2]
-    position = player[5]
+    position = int(player[5])
     link = player[6]
     
     stats_kickbase = get_player_performance_kb(token, cookies, player_id, season)
@@ -56,9 +56,11 @@ def extract_and_save_playerstats(player, season):
     merged_stats = merge_all_stats(stats_kickbase, stats_ligainsider, goals_grades, position)
     
     if position == 1:
+        print(f"{name} wegen Position {position} in gk stats gespeichert") # für debugging
         save_player_stats_gk(db_id, merged_stats)
     else:
-        save_player_stats_field(db_id, merged_stats)
+        print(f"{name} wegen Position {position} in field stats gespeichert") # für debugging
+        save_player_stats_field(db_id, merged_stats) 
 
     return len(merged_stats) #return nur um zu messen wie viele Einträge in der Datenbank gespeichert werden, hat keinen Nutzen und kann entfernt werden
 
@@ -120,7 +122,7 @@ conn.close()
 
 max_retries = 5
 
-for player in players:
+for player in players[:10]: # :10 nur zum testen
 
     if players.index(player) % 50 == 0 and players.index(player) != 0:
         pause = random.uniform(60, 150)
@@ -133,7 +135,7 @@ for player in players:
             time.sleep(random.uniform(2, 4))
             entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
             
-            total_entries_databank += (entries_current + entries_last)
+            total_entries_databank += (entries_current + entries_last) # + entires_last sofern entires_last nicht auskommentiert wurde
             
             print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
             break # break gilt für attempt Schleife
