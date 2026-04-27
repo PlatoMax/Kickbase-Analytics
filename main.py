@@ -115,14 +115,15 @@ total_entries_databank += len(matches)
 conn = get_connection()
 cursor = conn.cursor()
 cursor.execute("SELECT * FROM players")
+
+conn.commit()
 players = cursor.fetchall()
 # Aufbau bei Return: (Datenbank ID, Kickbase-ID, name, team_name, team_id, position, link_liga_insider)
 conn.close()
 
-
 max_retries = 5
 
-for player in players[:10]: # :10 nur zum testen
+for player in players: 
 
     if players.index(player) % 50 == 0 and players.index(player) != 0:
         pause = random.uniform(60, 150)

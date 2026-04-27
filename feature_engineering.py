@@ -10,7 +10,7 @@ df = pd.read_sql_query(query, conn)
 
 conn.close()
 
-df = df.sort_values(by=["player_id", "season", "matchday"])
+df = df.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)   
     
     
 
@@ -18,6 +18,13 @@ df["points_avg_last_3"] = (
     df.groupby(["player_id", "season"])["points_filled"] 
     .shift(1)
     .rolling(window=3)
+    .mean()
+)
+
+df["points_avg_last_5"] = (
+    df.groupby(["player_id", "season"])["points_filled"]
+    .shift(1)
+    .rolling(window=5)
     .mean()
 )
 
