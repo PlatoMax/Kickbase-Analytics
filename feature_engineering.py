@@ -1,6 +1,6 @@
 import pandas as pd
 import sqlite3
-
+import numpy as np
 
 conn = sqlite3.connect("kickbase.db")
 
@@ -58,7 +58,13 @@ df["minutes_trend"] = df["minutes_avg_last_3"] - df["minutes_avg_last_5"]
 df = df.drop(columns=["minutes_filled"])
 
 
+df["points_p90_last_5"] = (
+    (df["points_avg_last_5"] / df["minutes_avg_last_5"]) * 90
+)
 
+df["points_p90_last_3"] = (
+    (df["points_avg_last_3"] / df["minutes_avg_last_3"]) * 90
+)
 
-
-
+df["points_p90_last_5"] = df["points_p90_last_5"].replace([np.inf, -np.inf], np.nan).fillna(0)
+df["points_p90_last_3"] = df["points_p90_last_3"].replace([np.inf, -np.inf], np.nan).fillna(0)

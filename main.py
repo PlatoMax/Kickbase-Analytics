@@ -134,9 +134,9 @@ for player in players:
         try:
             entries_current = extract_and_save_playerstats(player, current_season)
             time.sleep(random.uniform(2, 4))
-            entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
+            # entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
             
-            total_entries_databank += (entries_current + entries_last) # + entires_last sofern entires_last nicht auskommentiert wurde
+            total_entries_databank += (entries_current ) # + entires_last sofern entires_last nicht auskommentiert wurde
             
             print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
             break # break gilt für attempt Schleife
