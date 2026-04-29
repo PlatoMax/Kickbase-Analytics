@@ -148,22 +148,28 @@ def form_trends(df, form_trend_cols):
 
     return df
 
-# Summe für Goals, Assits und Karten
-def sums_cards_goals_assists(df):
+def sums(df, sum_cols):
     df["cards_total"] = df["yellow_cards"].fillna(0) + df["yellow_red_cards"].fillna(0) * 2 + df["red_cards"].fillna(0) * 3
 
-    sum_cols = ["goals", "assists", "cards_total"]
+    current_sum_cols = sum_cols + ["cards_total"]
 
-    for col in sum_cols:
+    for col in current_sum_cols:
         df[f"{col}_sum_last_5"] = (
             df.groupby(["player_id", "season"])[col]
             .shift(1).rolling(window=5).sum().fillna(0)
         )
         
     df = df.drop(columns=["cards_total"])
+    return df
+
+
+def create_target_variable(df):
+    df["target_points"] = df.groupby(["player_id", "season"])["points"].shift(-1)
 
     return df
 
+#---------------------------------------------------------------------------------------------------------------------------------
+# Pipeline playerstats
 
 
 efficiency_cols_field = [
@@ -198,16 +204,51 @@ form_trend_cols = [
     "points_per_value"            
 ]
 
+sum_cols_field = ["goals", "assists"]
 
-df_field_players = points_avg_and_trend(df_field_players)
-df_field_players = minutes_avg_and_trend(df_field_players)
-df_field_players = points_p90(df_field_players)
-df_field_players = p90(df_field_players, efficiency_cols_field)
-df_field_players = ratios(df_field_players, ratio_pairs_field)
-df_field_players = form_trends(df_field_players, form_trend_cols)
-df_field_players = sums_cards_goals_assists(df_field_players)
+efficiency_cols_gk = [
+    "paraden",
+    "fehler_vor_gegentor"
 
-#---------------------------------------------------------------------------------------------------------------------------------
-# Playerstats Goalkeeper
-#---------------------------------------------------------------------------------------------------------------------------------
+]
 
+ratio_pairs_gk = [
+    ("abgewehrte_schuesse", "schuesse_gesamt"),
+    ("strafraum_beherrschung", "strafraum_beherrschung_gesamt"),
+    ("abgewehrte_elfmeter", "elfmeter_gesamt"),
+    ("grosschancen_pariert", "grosschancen_gesamt")
+]
+
+form_trend_cols = [
+    "goals_own_team", 
+    "goals_enemy_team", 
+    "match_result", 
+    "grade",
+    "points_per_value"            
+]
+
+sum_cols_gk = [
+    "weisse_weste"
+]
+
+
+def process_data(df_field_players, df_goalkeeper): 
+    df_field_players = points_avg_and_trend(df_field_players)
+    df_field_players = minutes_avg_and_trend(df_field_players)
+    df_field_players = points_p90(df_field_players)
+    df_field_players = p90(df_field_players, efficiency_cols_field)
+    df_field_players = ratios(df_field_players, ratio_pairs_field)
+    df_field_players = form_trends(df_field_players, form_trend_cols)
+    df_field_players = sums(df_field_players, sum_cols_field)
+    df_field_players = create_target_variable(df_field_players)
+
+    df_goalkeeper = points_avg_and_trend(df_goalkeeper)
+    df_goalkeeper = minutes_avg_and_trend(df_goalkeeper)
+    df_goalkeeper = points_p90(df_goalkeeper)
+    df_goalkeeper = p90(df_goalkeeper, efficiency_cols_gk)
+    df_goalkeeper = ratios(df_goalkeeper, ratio_pairs_gk)
+    df_goalkeeper = form_trends(df_goalkeeper, form_trend_cols)
+    df_goalkeeper = sums(df_goalkeeper, sum_cols_gk)
+    df_goalkeeper = create_target_variable(df_goalkeeper)
+
+    return df_field_players, df_goalkeeper
