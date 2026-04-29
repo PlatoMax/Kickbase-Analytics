@@ -68,3 +68,65 @@ df["points_p90_last_3"] = (
 
 df["points_p90_last_5"] = df["points_p90_last_5"].replace([np.inf, -np.inf], np.nan).fillna(0)
 df["points_p90_last_3"] = df["points_p90_last_3"].replace([np.inf, -np.inf], np.nan).fillna(0)
+
+
+# 
+efficiency_cols = [
+    "gewonnene_zweikaempfe",
+    "schuesse_aufs_tor"
+]
+
+for col in efficiency_cols:
+    df[f"{col}_filled"] = df[col].fillna(0)
+
+    df[f"{col}_avg_last_3"] = (
+        df.groupby(["player_id", "season"])[f"{col}_filled"]
+        .shift(1)
+        .rolling(window=3)
+        .mean()
+    )
+
+    df[f"{col}_p90_last_3"] = df[f"{col}_avg_last_3"] / df["minutes_avg_last_3"] * 90
+    df[f"{col}_p90_last_3"] = df[f"{col}_p90_last_3"].replace([np.inf, -np.inf], np.nan).fillna(0)  
+    
+    df = df.drop(columns=[f"{col}_filled", f"{col}_avg_last_3"])
+
+
+
+
+ratio_pairs = [
+    ("erfolgreiche_paesse", "paesse_gesamt"), 
+    ("gewonnene_zweikaempfe", "gewonnene_zweikaempfe_gesamt"),
+    ("gewonnene_luftkaempfe", "gewonnene_luftkaempfe_gesamt"),
+    ("erfolgreiche_tacklings", "tacklings_gesamt"),
+    ("erfolgreiche_dribblings", "dribblings_gesamt"),
+    ("schussgenauigkeit", "schussgenauigkeit_gesamt")
+]
+
+for succes_col, total_col in ratio_pairs:
+    df[f"{succes_col}_filled"] = df[succes_col].fillna(0)
+    df[f"{total_col}_filled"] = df[total_col].fillna(0)
+
+    df[f"{succes_col}_sum_last_3"] = (
+    df.groupby(["player_id", "season"])[f"{succes_col}_filled"]        
+    .shift(1)
+    .rolling(window=3)
+    .sum()
+    )
+
+    df[f"{total_col}_sum_last_3"] = (
+    df.groupby(["player_id", "season"])[f"{total_col}_filled"]        
+    .shift(1)
+    .rolling(window=3)
+    .sum()
+    )
+
+    df[f"{succes_col}_ratio_last_3"] = df[f"{succes_col}_sum_last_3"] / df[f"{total_col}_sum_last_3"]
+    df[f"{succes_col}_ratio_last_3"] = df[f"{succes_col}_ratio_last_3"].replace([np.inf, -np.inf], np.nan).fillna(0)
+
+    df = df.drop(columns=[
+        f"{succes_col}_filled",
+        f"{succes_col}_sum_last_3",
+        f"{total_col}_filled",
+        f"{total_col}_sum_last_3"
+    ])
