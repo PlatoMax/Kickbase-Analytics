@@ -2,6 +2,8 @@ import pandas as pd
 import sqlite3
 import numpy as np
 
+
+# Player_stats_field
 conn = sqlite3.connect("kickbase.db")
 
 query = "SELECT * FROM player_stats_field"
@@ -70,10 +72,19 @@ df["points_p90_last_5"] = df["points_p90_last_5"].replace([np.inf, -np.inf], np.
 df["points_p90_last_3"] = df["points_p90_last_3"].replace([np.inf, -np.inf], np.nan).fillna(0)
 
 
-# 
+# Effizient messen in dem man den avg. * 90 rechnet
 efficiency_cols = [
     "gewonnene_zweikaempfe",
-    "schuesse_aufs_tor"
+    "schuesse_aufs_tor",
+    "torschuss_vorlagen",
+    "kreierte_grosschancen",
+    "geklaerte_baelle",
+    "abgefangene_baelle",
+    "balleroberungen",
+    "geblockte_baelle",
+    "fehler_vor_gegentor",
+    "begangene_fouls",
+    "ballverluste"
 ]
 
 for col in efficiency_cols:
@@ -93,7 +104,7 @@ for col in efficiency_cols:
 
 
 
-
+# Wahrscheinlichkeitsmetriken 
 ratio_pairs = [
     ("erfolgreiche_paesse", "paesse_gesamt"), 
     ("gewonnene_zweikaempfe", "gewonnene_zweikaempfe_gesamt"),
@@ -130,3 +141,45 @@ for succes_col, total_col in ratio_pairs:
         f"{total_col}_filled",
         f"{total_col}_sum_last_3"
     ])
+
+# Form von Spieler und Team berechnen
+form_trend_cols = [
+    "goals_own_team", 
+    "goals_enemy_team", 
+    "match_result", 
+    "grade"             
+]
+
+for col in form_trend_cols:
+    df[f"{col}_filled"] = df[col].fillna(0)
+    
+    df[f"{col}_avg_last_3"] = (
+        df.groupby(["player_id", "season"])[f"{col}_filled"]
+        .shift(1).rolling(window=3).mean()
+    )
+    
+    df[f"{col}_avg_last_5"] = (
+        df.groupby(["player_id", "season"])[f"{col}_filled"]
+        .shift(1).rolling(window=5).mean()
+    )
+    
+    df[f"{col}_trend"] = df[f"{col}_avg_last_3"] - df[f"{col}_avg_last_5"]
+    
+    df = df.drop(columns=[f"{col}_filled"])
+
+# Summe für Goals, Assits und Karten
+df["cards_total"] = df["yellow_cards"].fillna(0) + df["yellow_red_cards"].fillna(0) * 2 + df["red_cards"].fillna(0) * 3
+sum_cols = ["goals", "assists", "cards_total"]
+
+for col in sum_cols:
+    df[f"{col}_sum_last_5"] = (
+        df.groupby(["player_id", "season"])[col]
+        .shift(1).rolling(window=5).sum().fillna(0)
+    )
+    
+df = df.drop(columns=["cards_total"])
+
+#---------------------------------------------------------------------------------------------------------------------------------
+# Playerstats Goalkeeper
+#---------------------------------------------------------------------------------------------------------------------------------
+
