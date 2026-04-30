@@ -55,7 +55,7 @@ def extract_and_save_playerstats(player, season):
 
     merged_stats = merge_all_stats(stats_kickbase, stats_ligainsider, goals_grades, position)
     
-    if position == 1:
+    if position == 1: # pos 1 = GK
         print(f"{name} wegen Position {position} in gk stats gespeichert") # für debugging
         save_player_stats_gk(db_id, merged_stats)
     else:

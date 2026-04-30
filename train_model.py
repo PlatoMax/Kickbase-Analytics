@@ -1,4 +1,4 @@
-from feature_engineering import get_final_ml_data
+from feature_engineering import get_final_ml_data, split_by_position
 import pandas as pd
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
@@ -36,95 +36,103 @@ def split_df(df, test_size = 0.2): # 0.2 = 80% Training, 20% Test split
 
 if __name__ == "__main__":
 
-    df_field, df_gk = get_final_ml_data()
-
-    X_train_field, X_test_field, y_train_field,  y_test_field = split_df(df_field)
-
-    X_train_gk, X_test_gk, y_train_gk, y_test_gk = split_df(df_gk)
-
-    RUN_GRID_SEARCH = False  # für grid_search einfach auf true ändern, aktuell werden jedoch bereits diese Parameter genutzt
+    RUN_GRID_SEARCH = True # für grid_search einfach auf true ändern, aktuell werden jedoch bereits diese Parameter genutzt
+    TRAIN_GOALKEEPER = False
 
     n_estimators = 500
     learning_rate = 0.01
     max_depth = 5
     subsample = 0.8
 
-    # field_players
-    model_field = XGBRegressor(
-        n_estimators = n_estimators,
-        learning_rate = learning_rate,
-        max_depth = max_depth, 
-        subsample=subsample, 
-        random_state=42,
-        n_jobs=1 
-    )
+    df_field, df_gk = get_final_ml_data()
 
-    model_field.fit(X_train_field, y_train_field)
+    df_def, df_mid, df_off = split_by_position(df_field)
 
-    model_field_pred = model_field.predict(X_test_field)
+    positions_data = {
+        "Abwehr": df_def,
+        "Mittelfeld": df_mid,
+        "Angriff": df_off
+    }
 
-    mae_field = mean_absolute_error(y_test_field, model_field_pred)
+    for position_name, df in positions_data.items():
+        print(f"\nStarte Training für: {position_name}")
 
-    rmse_field = np.sqrt(mean_squared_error(y_test_field, model_field_pred))
+        X_train, X_test, y_train, y_test = split_df(df)
 
+        if not RUN_GRID_SEARCH:
+                model = XGBRegressor(
+                    n_estimators=n_estimators,
+                    learning_rate=learning_rate,
+                    max_depth=max_depth,
+                    subsample=subsample,
+                    random_state=42,
+                    n_jobs=1
+                )
+
+                model.fit(X_train, y_train)
+                model_pred = model.predict(X_test)
+                
+                mae = mean_absolute_error(y_test, model_pred)
+                rmse = np.sqrt(mean_squared_error(y_test, model_pred))
+                
+                print(f"MAE {position_name}: {mae:.2f}")
+                print(f"RMSE {position_name}: {rmse:.2f}")
+
+        if RUN_GRID_SEARCH:
+            param_grid = {
+                'n_estimators': [100, 300, 500],
+                'learning_rate': [0.01, 0.05, 0.1],
+                'max_depth': [3, 5, 7],
+                'subsample': [0.8, 1.0] 
+            }
+
+            xgb = XGBRegressor(random_state=42)
+            grid_search = GridSearchCV(
+                estimator= xgb,
+                param_grid=param_grid,
+                cv=5,
+                scoring="neg_mean_absolute_error",
+                verbose=2,
+                n_jobs=1
+            )
+
+            grid_search.fit(X_train, y_train)
+
+            print(f"Besten Parameter: {grid_search.best_params_}")
+            print(f"Bester Score (neg MAE): {grid_search.best_score_:.2f}")
+
+            best_model = grid_search.best_estimator_
+            best_pred = best_model.predict(X_test)
+            best_mae = mean_absolute_error(y_test, best_pred)
+
+            print(f"MAE best_modell auf Testdaten: {best_mae:.2f}")
+            
+
+    
     # goalkeeper
-    model_gk = XGBRegressor(
-        n_estimators=n_estimators,
-        learning_rate=learning_rate,
-        max_depth=max_depth,
-        subsample=subsample,
-        random_state=42,
-        n_jobs=1
-    )
+    if TRAIN_GOALKEEPER:
+        
+        X_train_gk, X_test_gk, y_train_gk, y_test_gk = split_df(df_gk)
 
-    model_gk.fit(X_train_gk, y_train_gk)
-
-    model_gk_pred = model_gk.predict(X_test_gk)
-
-    mae_gk = mean_absolute_error(y_test_gk, model_gk_pred)
-
-    rmse_gk = np.sqrt(mean_squared_error(y_test_gk, model_gk_pred))
-
-
-
-    print(f"Parameter: {n_estimators}, {learning_rate}, {max_depth}, {subsample}, 42")
-    print(f"mae_field: {mae_field:.2f}")
-    print(f"rmse_field: {rmse_field:.2f}")
-
-    print(f"mae_gk: {mae_gk:.2f}")
-    print(f"rmse_gk: {rmse_gk:.2f}") 
-
-
-    if RUN_GRID_SEARCH:
-
-        param_grid = {
-            'n_estimators': [100, 300, 500],
-            'learning_rate': [0.01, 0.05, 0.1],
-            'max_depth': [3, 5, 7],
-            'subsample': [0.8, 1.0] 
-        }
-
-        xgb = XGBRegressor(random_state=42)
-        grid_search = GridSearchCV(
-            estimator= xgb,
-            param_grid=param_grid,
-            cv=5,
-            scoring="neg_mean_absolute_error",
-            verbose=2,
+        model_gk = XGBRegressor(
+            n_estimators=n_estimators,
+            learning_rate=learning_rate,
+            max_depth=max_depth,
+            subsample=subsample,
+            random_state=42,
             n_jobs=1
         )
 
-        grid_search.fit(X_train_field, y_train_field)
+        model_gk.fit(X_train_gk, y_train_gk)
 
-        print(f"Besten Parameter: {grid_search.best_params_}")
-        print(f"Bester Score (neg MAE): {grid_search.best_score_:.2f}")
+        model_gk_pred = model_gk.predict(X_test_gk)
 
-        best_model = grid_search.best_estimator_
-        best_pred = best_model.predict(X_test_field)
-        best_mae = mean_absolute_error(y_test_field, best_pred)
+        mae_gk = mean_absolute_error(y_test_gk, model_gk_pred)
 
-        print(f"MAE best_modell auf Testdaten: {best_mae:.2f}")
-        # Besten Parameter: 
-        # {'learning_rate': 0.01, 'max_depth': 5, 'n_estimators': 500, 'subsample': 0.8}
-        # Bester Score (neg MAE): -50.51
-        # MAE best_modell auf Testdaten: 45.86
+        rmse_gk = np.sqrt(mean_squared_error(y_test_gk, model_gk_pred))
+
+        print(f"mae_gk: {mae_gk:.2f}")
+        print(f"rmse_gk: {rmse_gk:.2f}") 
+
+
+    

@@ -7,13 +7,19 @@ import numpy as np
 def get_df_field(): 
     conn = sqlite3.connect("kickbase.db")
 
-    query_field_players = "SELECT * FROM player_stats_field"
+    query_field_players = """
+    SELECT ps.*, p.position 
+    FROM player_stats_field ps 
+    JOIN players p ON ps.player_id = p.id
+"""
 
     df_field_players = pd.read_sql_query(query_field_players, conn)
 
     conn.close()
 
     df_field_players = df_field_players.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)   
+    # Sicherstellen minutes ist kein String
+    df_field_players["minutes"] = pd.to_numeric(df_field_players["minutes"], errors="coerce")
     # Spieler ohne Spielzeit nicht ins Trainigsset aufnehmen (erstmal zum testen der Auswirkungen)
     df_field_players = df_field_players[df_field_players["minutes"] > 0] 
     return df_field_players
@@ -24,6 +30,8 @@ def get_df_gk():
     df_goalkeeper = pd.read_sql_query(query_goalkeeper, conn)
     conn.close()
     df_goalkeeper = df_goalkeeper.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)
+    # Sicherstellen das minutes kein String ist
+    df_goalkeeper["minutes"] = pd.to_numeric(df_goalkeeper["minutes"], errors="coerce")
     # Spieler ohne Spielzeit nicht ins Trainigsset aufnehmen (erstmal zum testen der Auswirkungen)
     df_goalkeeper = df_goalkeeper[df_goalkeeper["minutes"] > 0] 
     return df_goalkeeper
@@ -352,7 +360,8 @@ def get_final_ml_data():
     ]
 
     drop_cols_opponent = [col for col in df_field_players.columns if "opponent_2" in col or "opponent_3" in col]
-    drop_cols_opponent.append("opponent_1")
+    drop_cols_opponent.append("opponent_1_opponent")
+    drop_cols_opponent.append("opponent_1") # 2 mal da 2mal gemerged wird
 
     df_field_players = df_field_players.drop(columns=drop_cols_field, errors="ignore")
     df_field_players = df_field_players.drop(columns=drop_cols_opponent, errors="ignore")
@@ -422,3 +431,15 @@ def get_final_ml_data():
     print("df_goalkeeper: ", df_goalkeeper.shape)
 
     return df_field_players, df_goalkeeper
+
+
+def split_by_position(df):
+    df_def = df[df["position"] == 2].copy()
+    df_mid = df[df["position"] == 3].copy()
+    df_off = df[df["position"] == 4].copy()
+
+    df_def = df_def.drop(columns=["position"])
+    df_mid = df_mid.drop(columns=["position"])
+    df_off = df_off.drop(columns=["position"])
+
+    return df_def, df_mid, df_off
