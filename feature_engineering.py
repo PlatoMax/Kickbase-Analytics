@@ -14,7 +14,8 @@ def get_df_field():
     conn.close()
 
     df_field_players = df_field_players.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)   
-
+    # Spieler ohne Spielzeit nicht ins Trainigsset aufnehmen (erstmal zum testen der Auswirkungen)
+    df_field_players = df_field_players[df_field_players["minutes"] > 0] 
     return df_field_players
 
 def get_df_gk():
@@ -23,6 +24,8 @@ def get_df_gk():
     df_goalkeeper = pd.read_sql_query(query_goalkeeper, conn)
     conn.close()
     df_goalkeeper = df_goalkeeper.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)
+    # Spieler ohne Spielzeit nicht ins Trainigsset aufnehmen (erstmal zum testen der Auswirkungen)
+    df_goalkeeper = df_goalkeeper[df_goalkeeper["minutes"] > 0] 
     return df_goalkeeper
 
 # Punkte avg und trend letzten 3 und 5 Spiele
