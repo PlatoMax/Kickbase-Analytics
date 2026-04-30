@@ -351,7 +351,8 @@ def get_final_ml_data():
         "points_per_minute"
     ]
 
-    drop_cols_opponent = [col for col in df_field_players.columns if "opponent_1" in col or "opponent_2" in col or "opponent_3" in col]
+    drop_cols_opponent = [col for col in df_field_players.columns if "opponent_2" in col or "opponent_3" in col]
+    drop_cols_opponent.append("opponent_1")
 
     df_field_players = df_field_players.drop(columns=drop_cols_field, errors="ignore")
     df_field_players = df_field_players.drop(columns=drop_cols_opponent, errors="ignore")

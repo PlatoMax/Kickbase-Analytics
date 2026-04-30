@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     X_train_gk, X_test_gk, y_train_gk, y_test_gk = split_df(df_gk)
 
-    RUN_GRID_SEARCH = True  # für grid_search einfach auf true ändern, aktuell werden jedoch bereits diese Parameter genutzt
+    RUN_GRID_SEARCH = False  # für grid_search einfach auf true ändern, aktuell werden jedoch bereits diese Parameter genutzt
 
     n_estimators = 500
     learning_rate = 0.01
