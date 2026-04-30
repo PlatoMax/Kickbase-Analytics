@@ -3,19 +3,26 @@ import sqlite3
 import numpy as np
 
 
-# Player_stats_field
-conn = sqlite3.connect("kickbase.db")
+# Get Player_stats_field und Goalkeeper 
+def get_df_field(): 
+    conn = sqlite3.connect("kickbase.db")
 
-query_field_players = "SELECT * FROM player_stats_field"
-query_goalkeeper = "SELECT * FROM player_stats_gk"
+    query_field_players = "SELECT * FROM player_stats_field"
 
-df_field_players = pd.read_sql_query(query_field_players, conn)
-df_goalkeeper = pd.read_sql_query(query_goalkeeper, conn)
+    df_field_players = pd.read_sql_query(query_field_players, conn)
 
-conn.close()
+    conn.close()
 
-df_field_players = df_field_players.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)   
-df_goalkeeper = df_goalkeeper.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)
+    df_field_players = df_field_players.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)   
+
+    return df_field_players
+
+def get_df_gk():
+    conn = sqlite3.connect("kickbase.db")
+    query_goalkeeper = "SELECT * FROM player_stats_gk"
+    df_goalkeeper = pd.read_sql_query(query_goalkeeper, conn)
+    conn.close()
+    df_goalkeeper = df_goalkeeper.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)
 
 # Punkte avg und trend letzten 3 und 5 Spiele
 def points_avg_and_trend(df):
@@ -201,7 +208,8 @@ form_trend_cols = [
     "goals_enemy_team", 
     "match_result", 
     "grade",
-    "points_per_value"            
+    "points_per_value",
+    "ligaInsider_points"           
 ]
 
 sum_cols_field = ["goals", "assists"]
@@ -250,5 +258,162 @@ def process_data(df_field_players, df_goalkeeper):
     df_goalkeeper = form_trends(df_goalkeeper, form_trend_cols)
     df_goalkeeper = sums(df_goalkeeper, sum_cols_gk)
     df_goalkeeper = create_target_variable(df_goalkeeper)
+
+    return df_field_players, df_goalkeeper
+
+
+# Merge mit Team_stats
+def get_final_ml_data():
+    df_field_players = get_df_field()
+    df_goalkeeper = get_df_gk()
+
+    df_field_players, df_goalkeeper = process_data(df_field_players, df_goalkeeper)
+    
+    
+    df_field_players = df_field_players.dropna(subset=["target_points"])
+    df_goalkeeper = df_goalkeeper.dropna(subset=["target_points"])
+
+    conn = sqlite3.connect("kickbase.db")
+    query_team_stats = "SELECT * FROM team_stats"
+    df_team_stats = pd.read_sql_query(query_team_stats, conn)
+    conn.close()
+
+    df_team_stats = df_team_stats.sort_values(by=["team_name", "season", "matchday"])  
+
+    df_field_players = pd.merge(
+        df_field_players,
+        df_team_stats,
+        how="left",
+        on=["season", "matchday", "team_name"],
+        suffixes=("", "_team"),
+    )
+
+    df_field_players = pd.merge(
+        df_field_players,
+        df_team_stats,
+        how="left",
+        left_on=["season", "matchday", "opponent_name"],
+        right_on=["season", "matchday", "team_name"],
+        suffixes=("", "_opponent"),
+    )
+
+    drop_cols_field = [
+        "id",
+        "player_id",
+        "team_name",
+        "season",
+        "opponent_name",
+        "date",
+        "points",
+        "minutes",
+        "goals_own_team",
+        "goals_enemy_team",
+        "match_result",
+        "goals",
+        "assists",
+        "yellow_cards",
+        "yellow_red_cards",
+        "red_cards",
+        "ligaInsider_points",
+        "grade",
+        "status",
+        "erfolgreiche_paesse",
+        "paesse_gesamt",
+        "gewonnene_zweikaempfe",
+        "gewonnene_zweikaempfe_gesamt",
+        "gewonnene_luftkaempfe",
+        "gewonnene_luftkaempfe_gesamt",
+        "erfolgreiche_tacklings",
+        "tacklings_gesamt",
+        "begangene_fouls",
+        "geklaerte_baelle",
+        "abgefangene_baelle",
+        "balleroberungen",
+        "ballverluste",
+        "erfolgreiche_dribblings",
+        "dribblings_gesamt",
+        "torschuss_vorlagen",
+        "kreierte_grosschancen",
+        "schuesse_aufs_tor",
+        "schussgenauigkeit",
+        "schussgenauigkeit_gesamt",
+        "fehler_vor_gegentor",
+        "geblockte_baelle",
+        "team_name_team",
+        "team_name_opponent",
+        "id_team",
+        "id_opponent",
+        "points_per_minute"
+    ]
+
+    drop_cols_opponent = [col for col in df_field_players.columns if "opponent_1" in col or "opponent_2" in col or "opponent_3" in col]
+
+    df_field_players = df_field_players.drop(columns=drop_cols_field, errors="ignore")
+    df_field_players = df_field_players.drop(columns=drop_cols_opponent, errors="ignore")
+
+    # Analog: Merge Teamstats mit df_goalkeeper Goalkeeper und droppe Rohspalten
+    df_goalkeeper = pd.merge(
+        df_goalkeeper,
+        df_team_stats,
+        how="left",
+        on=["season", "matchday", "team_name"],
+        suffixes=("", "_team"),
+    )
+
+    df_goalkeeper = pd.merge(
+        df_goalkeeper,
+        df_team_stats,
+        how="left",
+        left_on=["season", "matchday", "opponent_name"],
+        right_on=["season", "matchday", "team_name"],
+        suffixes=("", "_opponent"),
+    )
+
+    drop_cols_gk = [
+        "id_opponent",
+        "id_team",
+        "id",
+        "player_id",
+        "team_name",
+        "season",
+        "opponent_name",
+        "date",
+        "points",
+        "minutes",
+        "goals_own_team",
+        "goals_enemy_team",
+        "match_result",
+        "goals",
+        "assists",
+        "yellow_cards",
+        "yellow_red_cards",
+        "red_cards",
+        "ligaInsider_points",
+        "grade",
+        "status",
+        "team_name_team",
+        "team_name_opponent",
+        "abgewehrte_schuesse",
+        "abgewehrte_schuesse_gesamt",       
+        "paraden",
+        "weisse_weste",       
+        "strafraum_beherrschung",
+        "strafraum_beherrschung_gesamt",        
+        "abgewehrte_elfmeter",
+        "elfmeter_gesamt",
+        "grosschancen_pariert",
+        "grosschancen_gesamt",
+        "fehler_vor_gegentor",
+        "points_per_minute"
+        
+    ]
+
+
+    df_goalkeeper = df_goalkeeper.drop(columns=drop_cols_gk, errors="ignore")
+    df_goalkeeper = df_goalkeeper.drop(columns=drop_cols_opponent, errors="ignore")
+
+    # Zeige Formen der DataFrames
+    print("df_field_players: ", df_field_players.shape)
+    print("df_goalkeeper: ", df_goalkeeper.shape)
 
     return df_field_players, df_goalkeeper

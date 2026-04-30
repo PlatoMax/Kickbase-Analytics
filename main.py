@@ -69,7 +69,7 @@ start_time = time.perf_counter() # Just for fun um die Dauer zu sehen
 
 token, league_id, cookies = login()
 
-
+create_tables()
 
 # teams:
 li_teams = fetch_ligainsider_teams()
@@ -79,7 +79,7 @@ for team in kb_teams:
     team_name_kb = team["team_name"]
     team_name_li = TEAMS_MAPPING[team_name_kb]
 
-    team_id = team["team_id"]
+    team_id = int(team["team_id"])
     link = li_teams.get(team_name_li, None)
     if link is None:
         print("Für Team ", team_name_li, " keinen Link gefunden")
@@ -96,9 +96,8 @@ if datetime.now().month < 8:
 current_season = f"{current_start_year}/{current_start_year + 1}"
 last_season = f"{current_start_year - 1}/{current_start_year}"
 
-# total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
+total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
 total_entries_databank += extract_and_save_teamstats(current_season)
-
 
 
 # Players
@@ -126,17 +125,17 @@ max_retries = 5
 for player in players: 
 
     if players.index(player) % 50 == 0 and players.index(player) != 0:
-        pause = random.uniform(60, 150)
+        pause = random.uniform(40, 100)
         print(f"Kaffeepause! Skript pausiert für {pause:.0f} Sekunden...")
         time.sleep(pause)
 
     for attempt in range(max_retries):
         try:
             entries_current = extract_and_save_playerstats(player, current_season)
-            time.sleep(random.uniform(2, 4))
-            # entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
+            time.sleep(random.uniform(1, 2))
+            entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
             
-            total_entries_databank += (entries_current ) # + entires_last sofern entires_last nicht auskommentiert wurde
+            total_entries_databank += (entries_current + entries_last ) # + entires_last sofern entires_last nicht auskommentiert wurde
             
             print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
             break # break gilt für attempt Schleife
@@ -151,7 +150,7 @@ for player in players:
                 print(f"\033[91m Fehler: {player[2]} endgültig übersprungen nach {max_retries} Versuchen. \033[0m ")   
 
     print(f"{players.index(player) + 1} von {len(players)} Spieler abgeschlossen")
-    time.sleep(random.uniform(2,5))            
+    time.sleep(random.uniform(2,4))            
 
 end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60

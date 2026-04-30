@@ -345,7 +345,7 @@ def get_player_performance_kb(token, cookies, player_id, target_season):
             seen_matchdays.add(matchday) # Spieltag als "gesehen" markieren
 
             date = game.get("md")
-            point = game.get("p") 
+            point = game.get("p")
             minutes_str = game.get("mp") 
             minutes = int(minutes_str.replace("'", "")) if minutes_str else 0
             points_per_minute = point / minutes if minutes > 0 else None
@@ -382,6 +382,9 @@ def get_player_performance_kb(token, cookies, player_id, target_season):
             enemy_goals = t2g if historical_team_id == t1 else t1g
             match_result = 1 if own_goals > enemy_goals else -1 if own_goals < enemy_goals else 0 
             # 1 = Sieg, 0 = Unentschieden, -1 = Niederlage
+
+            own_teamname = team1_name if historical_team_id == t1 else team2_name
+            enemy_teamname = team2_name if historical_team_id == t1 else team1_name
             
 
             performance.append({
@@ -393,10 +396,8 @@ def get_player_performance_kb(token, cookies, player_id, target_season):
                 "points_per_minute": points_per_minute,
                 "market_value": current_market_value,
                 "points_per_value": points_per_value,
-                "team1": t1,
-                "team1_name": team1_name,
-                "team2_name": team2_name,
-                "team2": t2,
+                "team_name": own_teamname,
+                "opponent_name": enemy_teamname,
                 "goals_own_team": own_goals,
                 "goals_enemy_team": enemy_goals,
                 "match_result": match_result
@@ -425,10 +426,8 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
             "points_per_minute": kb_match.get("points_per_minute"),
             "market_value": kb_match.get("market_value"),
             "points_per_value": kb_match.get("points_per_value"),
-            "team1": kb_match.get("team1"),
-            "team1_name": kb_match.get("team1_name"),
-            "team2": kb_match.get("team2"),
-            "team2_name": kb_match.get("team2_name"),
+            "team_name": kb_match.get("own_teamname"),
+            "opponent_name": kb_match.get("enemy_teamname"),
             "goals_own_team": kb_match.get("goals_own_team"),
             "goals_enemy_team": kb_match.get("goals_enemy_team"),
             "match_result": kb_match.get("match_result"),
@@ -741,7 +740,7 @@ def merge_team_stats(table, next_opponent, current_form):
 
     for index, (team_name, table_stats) in enumerate(table):
         team_entry = {
-            "Teamname": team_name,
+            "team_name": team_name,
             "Tabellenplatz": index + 1
         }
 

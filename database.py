@@ -14,7 +14,7 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS teams (
             id INTEGER PRIMARY KEY,  
-            name TEXT NOT NULL UNIQUE,
+            team_name TEXT NOT NULL UNIQUE,
             link_liga_insider TEXT
         )
     """)
@@ -22,7 +22,7 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS team_stats (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            Teamname TEXT NOT NULL,
+            team_name TEXT NOT NULL,
             Tabellenplatz INTEGER,
             matchday INTEGER NOT NULL,
             season TEXT NOT NULL,
@@ -67,7 +67,7 @@ def create_tables():
             form_match_5_goals_conceded INTEGER,
             form_match_5_Heimvorteil INTEGER,
             
-            UNIQUE(Teamname, season, matchday)
+            UNIQUE(team_name, season, matchday)
                    
         )
     """)
@@ -96,10 +96,8 @@ def create_tables():
             points_per_minute REAL,
             market_value REAL,
             points_per_value REAL,
-            team1 INTEGER,
-            team1_name TEXT,
-            team2 INTEGER,
-            team2_name TEXT,
+            team_name TEXT,
+            opponent_name TEXT,
             goals_own_team INTEGER,
             goals_enemy_team INTEGER,
             match_result INTEGER,
@@ -159,10 +157,8 @@ def create_tables():
             minutes INTEGER,
             points_per_minute REAL,
             points_per_value REAL,
-            team1 INTEGER,
-            team1_name TEXT,
-            team2 INTEGER,
-            team2_name TEXT,
+            team_name TEXT,
+            opponent_name TEXT,
             goals_own_team INTEGER,
             goals_enemy_team INTEGER,
             match_result INTEGER,
@@ -208,10 +204,10 @@ def save_teams(team_id, name, link_liga_insider):
     conn = get_connection()
     cursor = conn.cursor()
     sql = """
-        INSERT INTO teams (id, name, link_liga_insider)
+        INSERT INTO teams (id, team_name, link_liga_insider)
         VALUES (?, ?, ?)  
         ON CONFLICT(id) DO UPDATE SET  
-            name = excluded.name,      
+            team_name = excluded.team_name,      
             link_liga_insider = excluded.link_liga_insider
     """
     try:
@@ -232,7 +228,7 @@ def clear_teams():
 def get_team_id_by_name(name):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM teams WHERE NAME = ?", (name,))
+    cursor.execute("SELECT id FROM teams WHERE team_name = ?", (name,))
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else None
@@ -255,7 +251,7 @@ def save_player_stats_field(player_id, stats_list):
     sql = """
         INSERT INTO player_stats_field (
             player_id, season, matchday, date, points, minutes,
-            points_per_minute, points_per_value, team1, team1_name, team2, team2_name,
+            points_per_minute, points_per_value, team_name, opponent_name,
             goals_own_team, goals_enemy_team, match_result, goals,
             assists, yellow_cards, yellow_red_cards, red_cards,
             ligaInsider_points, grade, status,
@@ -271,7 +267,7 @@ def save_player_stats_field(player_id, stats_list):
             fehler_vor_gegentor, geblockte_baelle
         ) VALUES (
             :player_id, :season, :matchday, :date, :points, :minutes,
-            :points_per_minute, :points_per_value, :team1, :team1_name, :team2, :team2_name,
+            :points_per_minute, :points_per_value, :team_name, :opponent_name,
             :goals_own_team, :goals_enemy_team, :match_result, :goals,
             :assists, :yellow_cards, :yellow_red_cards, :red_cards,
             :ligaInsider_points, :grade, :status,
@@ -360,7 +356,7 @@ def save_player_stats_gk(player_id, stats_list):
     sql = """
         INSERT INTO player_stats_gk (
             player_id, season, matchday, date, points, minutes,
-            points_per_minute, points_per_value, team1, team1_name, team2, team2_name,
+            points_per_minute, points_per_value, team_name, opponent_name,
             goals_own_team, goals_enemy_team, match_result, goals,
             assists, yellow_cards, yellow_red_cards, red_cards,
             ligaInsider_points, grade, status,
@@ -372,7 +368,7 @@ def save_player_stats_gk(player_id, stats_list):
             fehler_vor_gegentor
         ) VALUES (
             :player_id, :season, :matchday, :date, :points, :minutes,
-            :points_per_minute, :points_per_value, :team1, :team1_name, :team2, :team2_name,
+            :points_per_minute, :points_per_value, :team_name, :opponent_name,
             :goals_own_team, :goals_enemy_team, :match_result, :goals,
             :assists, :yellow_cards, :yellow_red_cards, :red_cards,
             :ligaInsider_points, :grade, :status,
@@ -506,7 +502,7 @@ def save_team_stats(merged_team_stats):
     cursor = conn.cursor()
     sql = """
         INSERT INTO team_stats (
-            Teamname, Tabellenplatz, matchday, season, points, goals, goals_conceded, 
+            team_name, Tabellenplatz, matchday, season, points, goals, goals_conceded, 
             
             opponent_1, opponent_1_Heimvorteil, opponent_1_rank,
             opponent_2, opponent_2_Heimvorteil, opponent_2_rank,
@@ -519,7 +515,7 @@ def save_team_stats(merged_team_stats):
             form_match_5_points, form_match_5_goals, form_match_5_goals_conceded, form_match_5_Heimvorteil
             
         ) VALUES (
-            :Teamname, :Tabellenplatz, :matchday, :season, :points, :goals, :goals_conceded, 
+            :team_name, :Tabellenplatz, :matchday, :season, :points, :goals, :goals_conceded, 
             
             :opponent_1, :opponent_1_Heimvorteil, :opponent_1_rank, 
             :opponent_2, :opponent_2_Heimvorteil, :opponent_2_rank, 
@@ -531,7 +527,7 @@ def save_team_stats(merged_team_stats):
             :form_match_4_points, :form_match_4_goals, :form_match_4_goals_conceded, :form_match_4_Heimvorteil, 
             :form_match_5_points, :form_match_5_goals, :form_match_5_goals_conceded, :form_match_5_Heimvorteil
         )
-        ON CONFLICT(Teamname, season, matchday) DO NOTHING
+        ON CONFLICT(team_name, season, matchday) DO NOTHING
     """
     try: 
         cursor.executemany(sql, merged_team_stats)
