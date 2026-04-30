@@ -4,3 +4,5 @@ python-dotenv
 rapidfuzz
 pandas
 numpy
+xgboost
+scikit-learn

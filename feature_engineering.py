@@ -23,6 +23,7 @@ def get_df_gk():
     df_goalkeeper = pd.read_sql_query(query_goalkeeper, conn)
     conn.close()
     df_goalkeeper = df_goalkeeper.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)
+    return df_goalkeeper
 
 # Punkte avg und trend letzten 3 und 5 Spiele
 def points_avg_and_trend(df):
@@ -221,7 +222,7 @@ efficiency_cols_gk = [
 ]
 
 ratio_pairs_gk = [
-    ("abgewehrte_schuesse", "schuesse_gesamt"),
+    ("abgewehrte_schuesse", "abgewehrte_schuesse_gesamt"),
     ("strafraum_beherrschung", "strafraum_beherrschung_gesamt"),
     ("abgewehrte_elfmeter", "elfmeter_gesamt"),
     ("grosschancen_pariert", "grosschancen_gesamt")
@@ -267,6 +268,8 @@ def get_final_ml_data():
     df_field_players = get_df_field()
     df_goalkeeper = get_df_gk()
 
+    df_field_players["market_value"] = pd.to_numeric(df_field_players["market_value"], errors="coerce") # vorher ein String gewesen
+
     df_field_players, df_goalkeeper = process_data(df_field_players, df_goalkeeper)
     
     
@@ -301,7 +304,6 @@ def get_final_ml_data():
         "id",
         "player_id",
         "team_name",
-        "season",
         "opponent_name",
         "date",
         "points",
@@ -375,7 +377,6 @@ def get_final_ml_data():
         "id",
         "player_id",
         "team_name",
-        "season",
         "opponent_name",
         "date",
         "points",
