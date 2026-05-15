@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import requests
-from scrape.config import API_URL
+from scrape.config import *
 import sqlite3
 from bs4 import BeautifulSoup 
 import json
@@ -240,6 +240,101 @@ def add_if_team_mapping__dont_exists(teamid, teamname):
         KICKBASE_ID_TO_NAME[teamid] = teamname
         save_team_mapping(KICKBASE_ID_TO_NAME)
         print(f"{teamid}: {teamname} erfolgreich gespeichert")
+
+
+
+def get_league_id(token, cookies, l_name=LEAGUE_NAME):    
+    url = f"{API_URL}/leagues/selection"
+    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
+    league_id = None
+    try:
+        data = response.json()
+    except:
+        print("No response from get_league_id")
+        return None
+    
+    for league in data.get("it"):
+        if league.get("n") == l_name:
+            league_id = league.get("i")
+
+    return league_id
+         
+
+
+def get_budget(league_id, token, cookies):
+    """Gets the user's budget for a given league."""
+
+    url = f"{API_URL}/leagues/{league_id}/me/budget"
+    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
+    try: 
+        data = response.json()
+        return int(data.get("b", 0))
+    except Exception as e:
+        print(f"Fehler in get_budget: {e}")
+        return 0
+
+
+def get_players_on_market(league_id, token, cookies):
+    url = f"{API_URL}/leagues/{league_id}/market"
+    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
+
+    try:
+        data = response.json()
+    except Exception as e:
+        print(f"No response from get_players_on_market: {e}")
+        return None
+    players = []
+    for player in data.get("it"):
+        name = player.get("n")
+        player_id = player.get("i")
+        player_pos = player.get("pos")
+        team_id = player.get("tid")
+        player_price = player.get("mv")
+        expires_in_sec = player.get("exs", 0)
+        expires_in_h = expires_in_sec / 60 / 60
+
+        players.append({
+            "Playername": name,
+            "player_id": player_id,
+            "player_pos": player_pos,
+            "team_id": team_id,
+            "player_price": player_price,
+            "expires": expires_in_h
+        }
+        )
+    return players
+
+def get_squad(league_id, token, cookies):
+    url = f"{API_URL}/leagues/{league_id}/squad"
+    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
+
+    try:
+        data = response.json()
+    except Exception as e:
+        print(f"No response from get_squad: {e}")
+        return None
+    
+    # print(data)    # Debug Ausgabe
+
+    squad = []
+    for player in data.get("it"):
+        name = player.get("n")
+        player_id = player.get("i")
+        player_pos = player.get("pos")
+        team_id = player.get("tid")
+        player_price = player.get("mv")
+
+        squad.append({
+            "Playername": name,
+            "player_id": player_id,
+            "player_pos": player_pos,
+            "team_id": team_id,
+            "player_price": player_price
+        }
+        )
+
+    return squad
+        
 
 def get_min_season_kickbase(): #letzte zu betrachtende Saison im Kickbase-Format z.B. 2025/2026
     current_year = datetime.now().year

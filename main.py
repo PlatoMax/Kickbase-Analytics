@@ -152,6 +152,11 @@ for player in players:
     print(f"{players.index(player) + 1} von {len(players)} Spieler abgeschlossen")
     time.sleep(random.uniform(2,4))            
 
+
+
+
+
+
 end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60
 print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minuten:.2f} Minuten gespeichert.")

@@ -36,8 +36,8 @@ def split_df(df, test_size = 0.2): # 0.2 = 80% Training, 20% Test split
 
 if __name__ == "__main__":
 
-    RUN_GRID_SEARCH = True # für grid_search einfach auf true ändern, aktuell werden jedoch bereits diese Parameter genutzt
-    TRAIN_GOALKEEPER = False
+    RUN_GRID_SEARCH = False # für grid_search einfach auf true ändern, aktuell werden jedoch bereits diese Parameter genutzt
+    TRAIN_GOALKEEPER = True
 
     n_estimators = 500
     learning_rate = 0.01
@@ -111,7 +111,8 @@ if __name__ == "__main__":
     
     # goalkeeper
     if TRAIN_GOALKEEPER:
-        
+        print(f"\nStarte Training für: Torwart")
+
         X_train_gk, X_test_gk, y_train_gk, y_test_gk = split_df(df_gk)
 
         model_gk = XGBRegressor(
@@ -131,8 +132,8 @@ if __name__ == "__main__":
 
         rmse_gk = np.sqrt(mean_squared_error(y_test_gk, model_gk_pred))
 
-        print(f"mae_gk: {mae_gk:.2f}")
-        print(f"rmse_gk: {rmse_gk:.2f}") 
+        print(f"MAE Torwart: {mae_gk:.2f}")
+        print(f"RMSE Torwart: {rmse_gk:.2f}") 
 
 
     
