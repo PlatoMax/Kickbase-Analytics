@@ -5,6 +5,7 @@ from scrape.config import API_URL
 from scrape.fetch import login
 from scrape.scrape_stats import *
 from database import *
+from predict import get_all_predictions
 import random
 
 total_entries_databank = 0 # just for fun um Anzahl der Einträge in die Datenbank mitzuzählen
@@ -64,6 +65,35 @@ def extract_and_save_playerstats(player, season):
 
     return len(merged_stats) #return nur um zu messen wie viele Einträge in der Datenbank gespeichert werden, hat keinen Nutzen und kann entfernt werden
 
+def get_current_kickbase_matchday(token, cookies, player_id, target_season):
+    response = requests.get(
+        f"{API_URL}/competitions/1/players/{player_id}/performance",
+        headers={"tkn": token, "Accept": "application/json"},
+        cookies=cookies
+    )
+    matchdays = []
+    if response.status_code != 200:
+        print("Konnte aktuellen Spieltag nicht abrufen! (Status Code Error)")
+        return 0
+        
+    data = response.json()
+    matchdays = []
+    
+    for season in data.get("it", []): 
+        season_str = season["ti"]
+        if season_str != target_season or season["n"] != "Bundesliga": 
+            continue
+
+        for game in season["ph"]:
+            if game.get("mp") is None: 
+                break 
+            matchdays.append(game.get("day"))
+
+        return matchdays[-1]
+    else:
+        print("Konnte aktuellen Spieltag nicht abrufen!")
+        return 0
+
 # Daten holen und in den Datenbanken speichern
 start_time = time.perf_counter() # Just for fun um die Dauer zu sehen
 
@@ -96,7 +126,7 @@ if datetime.now().month < 8:
 current_season = f"{current_start_year}/{current_start_year + 1}"
 last_season = f"{current_start_year - 1}/{current_start_year}"
 
-total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
+# total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
 total_entries_databank += extract_and_save_teamstats(current_season)
 
 
@@ -117,45 +147,59 @@ cursor.execute("SELECT * FROM players")
 
 conn.commit()
 players = cursor.fetchall()
-# Aufbau bei Return: (Datenbank ID, Kickbase-ID, name, team_name, team_id, position, link_liga_insider)
+# Aufbau bei Return: (Datenbank ID, Kickbase-ID, name, team_name, team_id, position, link_liga_insider) 
+
+cursor.execute(f"SELECT max(matchday) FROM player_stats_field WHERE season = '{current_season}'")
+latest_matchday_db = cursor.fetchone()
+latest_matchday_db = latest_matchday_db[0] if latest_matchday_db[0] is not None else 0
 conn.close()
 
+random_player_id = players[0][1]
+latest_matchday_kickbase = get_current_kickbase_matchday(token, cookies, random_player_id, current_season) # hier nochmal genauer schauen ob das zukunftssicher ist
+
+print(f"latest db: {latest_matchday_db}, latest kb: {latest_matchday_kickbase}")
 max_retries = 5
+if latest_matchday_db < int(latest_matchday_kickbase):
+    for i, player in enumerate(players): 
 
-for player in players: 
+        if i % 50 == 0 and i != 0:
+            pause = random.uniform(40, 100)
+            print(f"Kaffeepause! Skript pausiert für {pause:.0f} Sekunden...")
+            time.sleep(pause)
 
-    if players.index(player) % 50 == 0 and players.index(player) != 0:
-        pause = random.uniform(40, 100)
-        print(f"Kaffeepause! Skript pausiert für {pause:.0f} Sekunden...")
-        time.sleep(pause)
+        for attempt in range(max_retries):
+            try:
+                entries_current = extract_and_save_playerstats(player, current_season)
+                time.sleep(random.uniform(1, 2))
+                entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
+                
+                total_entries_databank += (entries_current + entries_last ) # + entires_last sofern entires_last nicht auskommentiert wurde
+                
+                print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
+                break # break gilt für attempt Schleife
+            except Exception as e: 
+                print(f"Warnung bei {player[2]} (Versuch {attempt + 1}/{max_retries}): {e}")    
+                
+                if attempt < max_retries - 1:
+                    sleep_time = random.uniform(5, 10) * (2 ** attempt)
+                    print(f"Warte {sleep_time} Sekunden, bevor es nochmal versucht wird...")
+                    time.sleep(sleep_time)
+                else:
+                    print(f"\033[91m Fehler: {player[2]} endgültig übersprungen nach {max_retries} Versuchen. \033[0m ")   
 
-    for attempt in range(max_retries):
-        try:
-            entries_current = extract_and_save_playerstats(player, current_season)
-            time.sleep(random.uniform(1, 2))
-            entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
-            
-            total_entries_databank += (entries_current + entries_last ) # + entires_last sofern entires_last nicht auskommentiert wurde
-            
-            print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
-            break # break gilt für attempt Schleife
-        except Exception as e: 
-            print(f"Warnung bei {player[2]} (Versuch {attempt + 1}/{max_retries}): {e}")    
-            
-            if attempt < max_retries - 1:
-                sleep_time = random.uniform(5, 10) * (2 ** attempt)
-                print(f"Warte {sleep_time} Sekunden, bevor es nochmal versucht wird...")
-                time.sleep(sleep_time)
-            else:
-                print(f"\033[91m Fehler: {player[2]} endgültig übersprungen nach {max_retries} Versuchen. \033[0m ")   
+        print(f"{i + 1} von {len(players)} Spieler abgeschlossen")
+        time.sleep(random.uniform(2,4))            
+else: 
+    print("Database ist auf dem neusten Stand")
 
-    print(f"{players.index(player) + 1} von {len(players)} Spieler abgeschlossen")
-    time.sleep(random.uniform(2,4))            
+squad = get_squad(league_id, token, cookies)
+market = get_players_on_market(league_id, token, cookies)
+budget = get_budget(league_id, token, cookies)
 
+players_for_prediction = market + squad
 
-
-
-
+predictions = get_all_predictions(players_for_prediction)
+print(predictions)
 
 end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60

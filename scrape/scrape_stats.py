@@ -287,7 +287,7 @@ def get_players_on_market(league_id, token, cookies):
     for player in data.get("it"):
         name = player.get("n")
         player_id = player.get("i")
-        player_pos = player.get("pos")
+        player_pos = int(player.get("pos"))
         team_id = player.get("tid")
         player_price = player.get("mv")
         expires_in_sec = player.get("exs", 0)
@@ -320,7 +320,7 @@ def get_squad(league_id, token, cookies):
     for player in data.get("it"):
         name = player.get("n")
         player_id = player.get("i")
-        player_pos = player.get("pos")
+        player_pos = int(player.get("pos"))
         team_id = player.get("tid")
         player_price = player.get("mv")
 

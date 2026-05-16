@@ -252,40 +252,51 @@ sum_cols_gk = [
 ]
 
 
-def process_data(df_field_players, df_goalkeeper): 
-    df_field_players = points_avg_and_trend(df_field_players)
-    df_field_players = minutes_avg_and_trend(df_field_players)
-    df_field_players = points_p90(df_field_players)
-    df_field_players = p90(df_field_players, efficiency_cols_field)
-    df_field_players = ratios(df_field_players, ratio_pairs_field)
-    df_field_players = form_trends(df_field_players, form_trend_cols)
-    df_field_players = sums(df_field_players, sum_cols_field)
-    df_field_players = create_target_variable(df_field_players)
+def process_data(df): 
+    if df["position"].iloc[0] != 1:
+        df = points_avg_and_trend(df)
+        df = minutes_avg_and_trend(df)
+        df = points_p90(df)
+        df = p90(df, efficiency_cols_field)
+        df = ratios(df, ratio_pairs_field)
+        df = form_trends(df, form_trend_cols)
+        df = sums(df, sum_cols_field)
+        df = create_target_variable(df)
+    else: 
+        df = points_avg_and_trend(df)
+        df = minutes_avg_and_trend(df)
+        df = points_p90(df)
+        df = p90(df, efficiency_cols_gk)
+        df = ratios(df, ratio_pairs_gk)
+        df = form_trends(df, form_trend_cols)
+        df = sums(df, sum_cols_gk)
+        df = create_target_variable(df)
 
-    df_goalkeeper = points_avg_and_trend(df_goalkeeper)
-    df_goalkeeper = minutes_avg_and_trend(df_goalkeeper)
-    df_goalkeeper = points_p90(df_goalkeeper)
-    df_goalkeeper = p90(df_goalkeeper, efficiency_cols_gk)
-    df_goalkeeper = ratios(df_goalkeeper, ratio_pairs_gk)
-    df_goalkeeper = form_trends(df_goalkeeper, form_trend_cols)
-    df_goalkeeper = sums(df_goalkeeper, sum_cols_gk)
-    df_goalkeeper = create_target_variable(df_goalkeeper)
-
-    return df_field_players, df_goalkeeper
+    return df
 
 
 # Merge mit Team_stats
-def get_final_ml_data():
-    df_field_players = get_df_field()
-    df_goalkeeper = get_df_gk()
+def get_final_ml_data(df, is_training=True):
 
-    df_field_players["market_value"] = pd.to_numeric(df_field_players["market_value"], errors="coerce") # vorher ein String gewesen
+    if df is None or df.empty:
+        print("Empty DataFrame an get_final_ml_data übergeben")
+        return df
 
-    df_field_players, df_goalkeeper = process_data(df_field_players, df_goalkeeper)
+    if "market_value" in df.columns:
+        df["market_value"] = pd.to_numeric(df["market_value"], errors="coerce")
+
+    if "position" not in df.columns:
+        df["position"] = 1
+
+    df = process_data(df)
+    
+    if is_training:
+        df = df.dropna(subset=["target_points"])
+    else:
+        df = df.groupby("player_id").tail(1).reset_index(drop=True)
+        df = df.drop(columns=["target_points"], errors="ignore")
     
     
-    df_field_players = df_field_players.dropna(subset=["target_points"])
-    df_goalkeeper = df_goalkeeper.dropna(subset=["target_points"])
 
     conn = sqlite3.connect("kickbase.db")
     query_team_stats = "SELECT * FROM team_stats"
@@ -294,16 +305,16 @@ def get_final_ml_data():
 
     df_team_stats = df_team_stats.sort_values(by=["team_name", "season", "matchday"])  
 
-    df_field_players = pd.merge(
-        df_field_players,
+    df = pd.merge(
+        df,
         df_team_stats,
         how="left",
         on=["season", "matchday", "team_name"],
         suffixes=("", "_team"),
     )
 
-    df_field_players = pd.merge(
-        df_field_players,
+    df = pd.merge(
+        df,
         df_team_stats,
         how="left",
         left_on=["season", "matchday", "opponent_name"],
@@ -359,30 +370,9 @@ def get_final_ml_data():
         "points_per_minute"
     ]
 
-    drop_cols_opponent = [col for col in df_field_players.columns if "opponent_2" in col or "opponent_3" in col]
+    drop_cols_opponent = [col for col in df.columns if "opponent_2" in col or "opponent_3" in col]
     drop_cols_opponent.append("opponent_1_opponent")
     drop_cols_opponent.append("opponent_1") # 2 mal da 2mal gemerged wird
-
-    df_field_players = df_field_players.drop(columns=drop_cols_field, errors="ignore")
-    df_field_players = df_field_players.drop(columns=drop_cols_opponent, errors="ignore")
-
-    # Analog: Merge Teamstats mit df_goalkeeper Goalkeeper und droppe Rohspalten
-    df_goalkeeper = pd.merge(
-        df_goalkeeper,
-        df_team_stats,
-        how="left",
-        on=["season", "matchday", "team_name"],
-        suffixes=("", "_team"),
-    )
-
-    df_goalkeeper = pd.merge(
-        df_goalkeeper,
-        df_team_stats,
-        how="left",
-        left_on=["season", "matchday", "opponent_name"],
-        right_on=["season", "matchday", "team_name"],
-        suffixes=("", "_opponent"),
-    )
 
     drop_cols_gk = [
         "id_opponent",
@@ -421,16 +411,16 @@ def get_final_ml_data():
         "points_per_minute"
         
     ]
+    
 
+    if df["position"].iloc[0] != 1:
+        df = df.drop(columns=drop_cols_field, errors="ignore")
+        df = df.drop(columns=drop_cols_opponent, errors="ignore")
+    else:
+        df = df.drop(columns=drop_cols_gk, errors="ignore")
+        df = df.drop(columns=drop_cols_opponent, errors="ignore")
 
-    df_goalkeeper = df_goalkeeper.drop(columns=drop_cols_gk, errors="ignore")
-    df_goalkeeper = df_goalkeeper.drop(columns=drop_cols_opponent, errors="ignore")
-
-    # Zeige Formen der DataFrames
-    print("df_field_players: ", df_field_players.shape)
-    print("df_goalkeeper: ", df_goalkeeper.shape)
-
-    return df_field_players, df_goalkeeper
+    return df
 
 
 def split_by_position(df):

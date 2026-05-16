@@ -1,9 +1,10 @@
-from feature_engineering import get_final_ml_data, split_by_position
+from feature_engineering import get_final_ml_data, split_by_position, get_df_field, get_df_gk
 import pandas as pd
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import GridSearchCV
 import numpy as np
+import joblib 
 
 
 
@@ -44,7 +45,10 @@ if __name__ == "__main__":
     max_depth = 5
     subsample = 0.8
 
-    df_field, df_gk = get_final_ml_data()
+    df_field = get_df_field()
+    df_gk = get_df_gk()
+    df_field = get_final_ml_data(df_field)
+    df_gk = get_final_ml_data(df_gk)
 
     df_def, df_mid, df_off = split_by_position(df_field)
 
@@ -77,6 +81,10 @@ if __name__ == "__main__":
                 
                 print(f"MAE {position_name}: {mae:.2f}")
                 print(f"RMSE {position_name}: {rmse:.2f}")
+
+                filename = f"model_{position_name}.pkl"
+                joblib.dump(model, filename)
+                print(f"Model für {position_name} gespeichert")
 
         if RUN_GRID_SEARCH:
             param_grid = {
@@ -135,5 +143,7 @@ if __name__ == "__main__":
         print(f"MAE Torwart: {mae_gk:.2f}")
         print(f"RMSE Torwart: {rmse_gk:.2f}") 
 
+        joblib.dump(model_gk, "model_gk.pkl")
+        print("Model GK gespeichert")
 
     
