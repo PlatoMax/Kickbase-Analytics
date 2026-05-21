@@ -13,3 +13,7 @@ Ziel
 Spielerperformance prognostizieren
 Buy-/Sell-Signale ableiten
 datenbasierte Entscheidungen im Kickbase-Management verbessern
+
+Nächster Schritt
+
+Entscheidungslogik für Kauf/Verkauf auf dem Markt basierend auf Budget, Rahmenbedingungen (z. B. mindestens 1 Stürmer) und Punktevorhersage (ähnlich FPL-MIP-Optimierung).
