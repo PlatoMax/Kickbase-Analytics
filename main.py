@@ -200,7 +200,7 @@ budget = get_budget(league_id, token, cookies)
 players_for_prediction = market + squad
 
 predictions = get_all_predictions(players_for_prediction)
-
+print(predictions.keys())
 run_optimizer(market_players=market, squad_players=squad, budget=budget, predictions=predictions)
 
 end_time = time.perf_counter()

@@ -1,7 +1,7 @@
 import requests
 from dotenv import load_dotenv
 import os
-from scrape.config import API_URL
+from scrape.config import API_URL, LEAGUE_NAME
 
 load_dotenv()
 
@@ -21,7 +21,12 @@ def login():
 
     data = response.json()
     token = data.get("tkn")
-    league_id = data["srvl"][1]["id"] # die 1 da ich die 2 Liga in der ich bin nehmen will. Kann bei Bedarf angepasst werden (Nummer der Liga - 1, z.B. oberste Liga = 0)
+    league_id = None
+    for league in data["srvl"]:
+        if league["name"] == LEAGUE_NAME:
+            league_id = league["id"]
+            break
+        
     cookies = {"kkstrauth": response.cookies.get("kkstrauth")}
 
     return token, league_id, cookies
