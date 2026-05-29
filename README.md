@@ -3,10 +3,9 @@ Kickbase-Analytics
 Dieses Projekt soll mit XGBoost vorhersagen, wie gut ein Spieler in den nächsten Spielen performt.
 Darauf basierend sollen Kauf- und Verkaufsentscheidungen unterstützt werden.
 
-Aktueller Status
+Aktueller Status:
 
-🚧 Das Projekt befindet sich aktuell noch in der Entwicklung.
-Struktur, Features, Modelltraining und Entscheidungslogik werden Schritt für Schritt aufgebaut.
+Das Projekt funktioniert bereits aber es sind noch ein Verbesserungen geplant.
 
 Ziel
 
@@ -16,4 +15,4 @@ datenbasierte Entscheidungen im Kickbase-Management verbessern
 
 Nächster Schritt
 
-Entscheidungslogik für Kauf/Verkauf auf dem Markt basierend auf Budget, Rahmenbedingungen (z. B. mindestens 1 Stürmer) und Punktevorhersage (ähnlich FPL-MIP-Optimierung).
+Neue Features sowie verbesserung der Benutzerfreundlichkeit

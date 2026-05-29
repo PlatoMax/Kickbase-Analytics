@@ -6,6 +6,7 @@ from scrape.fetch import login
 from scrape.scrape_stats import *
 from database import *
 from predict import get_all_predictions
+from optimizer import run_optimizer
 import random
 
 total_entries_databank = 0 # just for fun um Anzahl der Einträge in die Datenbank mitzuzählen
@@ -71,7 +72,7 @@ def get_current_kickbase_matchday(token, cookies, player_id, target_season):
         headers={"tkn": token, "Accept": "application/json"},
         cookies=cookies
     )
-    matchdays = []
+    
     if response.status_code != 200:
         print("Konnte aktuellen Spieltag nicht abrufen! (Status Code Error)")
         return 0
@@ -80,19 +81,18 @@ def get_current_kickbase_matchday(token, cookies, player_id, target_season):
     matchdays = []
     
     for season in data.get("it", []): 
-        season_str = season["ti"]
-        if season_str != target_season or season["n"] != "Bundesliga": 
+        season_str = season.get("ti")
+        if season_str != target_season or season.get("n") != "Bundesliga": 
             continue
 
-        for game in season["ph"]:
+        for game in season.get("ph", []):
             if game.get("mp") is None: 
                 break 
             matchdays.append(game.get("day"))
 
-        return matchdays[-1]
-    else:
-        print("Konnte aktuellen Spieltag nicht abrufen!")
-        return 0
+        return matchdays[-1] if matchdays else 0
+        
+    return 0
 
 # Daten holen und in den Datenbanken speichern
 start_time = time.perf_counter() # Just for fun um die Dauer zu sehen
@@ -171,10 +171,11 @@ if latest_matchday_db < int(latest_matchday_kickbase):
             try:
                 entries_current = extract_and_save_playerstats(player, current_season)
                 time.sleep(random.uniform(1, 2))
-                entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
+                # entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
                 
-                total_entries_databank += (entries_current + entries_last ) # + entires_last sofern entires_last nicht auskommentiert wurde
-                
+                total_entries_databank += entries_current # + entires_last sofern entires_last nicht auskommentiert wurde
+                # total_entries_databank += entries_last # + entires_last sofern entires_last nicht auskommentiert wurde
+
                 print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
                 break # break gilt für attempt Schleife
             except Exception as e: 
@@ -199,7 +200,8 @@ budget = get_budget(league_id, token, cookies)
 players_for_prediction = market + squad
 
 predictions = get_all_predictions(players_for_prediction)
-print(predictions)
+
+run_optimizer(market_players=market, squad_players=squad, budget=budget, predictions=predictions)
 
 end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60
