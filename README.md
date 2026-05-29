@@ -7,6 +7,13 @@ Aktueller Status:
 
 Das Projekt funktioniert bereits aber es sind noch ein Verbesserungen geplant.
 
+Nutzung (kurz)
+
+1. Abhaengigkeiten installieren: pip install -r requirements.txt
+2. .env aus .env.example erstellen und EMAIL/PASSWORD setzen
+3. In scrape/config.py LEAGUE_NAME auf den eigenen Liga-Namen setzen
+4. Starten: python main.py
+
 Ziel
 
 Spielerperformance prognostizieren
