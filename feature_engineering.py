@@ -20,8 +20,6 @@ def get_df_field():
     df_field_players = df_field_players.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)   
     # Sicherstellen minutes ist kein String
     df_field_players["minutes"] = pd.to_numeric(df_field_players["minutes"], errors="coerce")
-    # Spieler ohne Spielzeit nicht ins Trainigsset aufnehmen (erstmal zum testen der Auswirkungen)
-    df_field_players = df_field_players[df_field_players["minutes"] > 0] 
     return df_field_players
 
 def get_df_gk():
@@ -32,8 +30,6 @@ def get_df_gk():
     df_goalkeeper = df_goalkeeper.sort_values(by=['player_id', 'season', 'matchday']).reset_index(drop=True)
     # Sicherstellen das minutes kein String ist
     df_goalkeeper["minutes"] = pd.to_numeric(df_goalkeeper["minutes"], errors="coerce")
-    # Spieler ohne Spielzeit nicht ins Trainigsset aufnehmen (erstmal zum testen der Auswirkungen)
-    df_goalkeeper = df_goalkeeper[df_goalkeeper["minutes"] > 0] 
     return df_goalkeeper
 
 # Punkte avg und trend letzten 3 und 5 Spiele
@@ -180,6 +176,16 @@ def sums(df, sum_cols):
         
     df = df.drop(columns=["cards_total"])
     return df
+def lag_features(df, lag_cols, lag=1):
+    for col in lag_cols:
+        if col not in df.columns:
+            continue
+
+        lagged = df.groupby(["player_id", "season"])[col].shift(lag)
+
+        df[f"{col}_lag_{lag}"] = pd.to_numeric(lagged).fillna(0)
+
+    return df
 
 
 def create_target_variable(df):
@@ -226,6 +232,18 @@ form_trend_cols = [
 
 sum_cols_field = ["goals", "assists"]
 
+lag_cols_field = [
+    "points",
+    "red_cards",
+    "yellow_red_cards",
+    "yellow_cards",
+    "goals",
+    "assists",
+    "erfolgreiche_paesse",
+    "gewonnene_zweikaempfe",
+    "grade"
+]
+
 efficiency_cols_gk = [
     "paraden",
     "fehler_vor_gegentor"
@@ -251,6 +269,14 @@ sum_cols_gk = [
     "weisse_weste"
 ]
 
+lag_cols_gk = [
+    "points",
+    "red_cards",
+    "yellow_red_cards",
+    "yellow_cards",
+    "grade"
+]
+
 
 def process_data(df): 
     if df["position"].iloc[0] != 1:
@@ -261,6 +287,7 @@ def process_data(df):
         df = ratios(df, ratio_pairs_field)
         df = form_trends(df, form_trend_cols)
         df = sums(df, sum_cols_field)
+        df = lag_features(df, lag_cols_field)
         df = create_target_variable(df)
     else: 
         df = points_avg_and_trend(df)
@@ -270,6 +297,7 @@ def process_data(df):
         df = ratios(df, ratio_pairs_gk)
         df = form_trends(df, form_trend_cols)
         df = sums(df, sum_cols_gk)
+        df = lag_features(df, lag_cols_gk)
         df = create_target_variable(df)
 
     return df

@@ -2,43 +2,38 @@ from feature_engineering import get_final_ml_data, split_by_position, get_df_fie
 import pandas as pd
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, TimeSeriesSplit, cross_val_score
 import numpy as np
 import joblib 
 
 
+def prepare_traindata(df):
+    df = df.drop_duplicates().sort_values(by=["season", "matchday"]).fillna(0)
+    x = df.drop(columns=["target_points", "season"])
+    y = df["target_points"]
 
-def split_df(df, test_size = 0.2): # 0.2 = 80% Training, 20% Test split
+    return x,y
 
-    timeline = df[['season', 'matchday']].drop_duplicates().sort_values(by=['season', 'matchday'])
-
-    split_index = int(len(timeline) * (1-test_size))
-
-    if split_index == len(timeline): # Edge Case aktuell ganz am Anfang der Saison
-        split_index = len(timeline) - 1
-
-    train_timeline = timeline.iloc[:split_index]
-    test_timeline = timeline.iloc[split_index:]
-
-    train_data = pd.merge(df, train_timeline, on=['season', 'matchday'], how='inner')
-    test_data = pd.merge(df, test_timeline, on=['season', 'matchday'], how='inner')
-
-    train_data = train_data.fillna(0)
-    test_data = test_data.fillna(0)
-
-    X_train = train_data.drop(columns=["target_points", "season"])
-    y_train = train_data["target_points"]
-    X_test = test_data.drop(columns=["target_points", "season"])
-    y_test = test_data["target_points"]
+def print_feature_importances(model, feature_names, position_name, top_n=10):
+    importances = model.feature_importances_
     
-    print(f"Trainings-Spiele: {len(X_train)} | Test-Spiele: {len(X_test)}") # für debugging 
+    importance_df = pd.DataFrame({
+        'Feature': feature_names,
+        'importance': importances
+    })
     
-    return X_train, X_test, y_train, y_test
+    # Absteigend sortieren
+    importance_df = importance_df.sort_values(by="importance", ascending=False)
+    
+    print(f"\nTop {top_n} Features für {position_name}:")
+    print(importance_df.head(top_n))
+
 
 if __name__ == "__main__":
 
     RUN_GRID_SEARCH = False # für grid_search einfach auf true ändern, aktuell werden jedoch bereits diese Parameter genutzt
     TRAIN_GOALKEEPER = True
+    SAFE_MODELL = False
 
     n_estimators = 500
     learning_rate = 0.01
@@ -61,7 +56,7 @@ if __name__ == "__main__":
     for position_name, df in positions_data.items():
         print(f"\nStarte Training für: {position_name}")
 
-        X_train, X_test, y_train, y_test = split_df(df)
+        x, y = prepare_traindata(df)
 
         if not RUN_GRID_SEARCH:
                 model = XGBRegressor(
@@ -72,56 +67,63 @@ if __name__ == "__main__":
                     random_state=42,
                     n_jobs=1
                 )
-
-                model.fit(X_train, y_train)
-                model_pred = model.predict(X_test)
                 
-                mae = mean_absolute_error(y_test, model_pred)
-                rmse = np.sqrt(mean_squared_error(y_test, model_pred))
-                
-                print(f"MAE {position_name}: {mae:.2f}")
-                print(f"RMSE {position_name}: {rmse:.2f}")
+                scores = cross_val_score(model, x, y, cv=TimeSeriesSplit(n_splits=5), scoring="neg_mean_absolute_error")
+                mae = scores.mean() * -1  
+                print(f"Bester CV MAE für {position_name}: {mae:.2f}")
 
-                filename = f"model_{position_name}.pkl"
-                joblib.dump(model, filename)
-                print(f"Model für {position_name} gespeichert")
+                model.fit(x, y)
+                if SAFE_MODELL:
+                    filename = f"model_{position_name}.pkl"
+                    joblib.dump(model, filename)
+                    print(f"Model für {position_name} gespeichert")
 
         if RUN_GRID_SEARCH:
             param_grid = {
                 'n_estimators': [100, 300, 500],
                 'learning_rate': [0.01, 0.05, 0.1],
                 'max_depth': [3, 5, 7],
-                'subsample': [0.8, 1.0] 
+                'subsample': [0.8, 1.0]
             }
 
             xgb = XGBRegressor(random_state=42)
             grid_search = GridSearchCV(
                 estimator= xgb,
                 param_grid=param_grid,
-                cv=5,
-                scoring="neg_mean_absolute_error",
-                verbose=2,
+                cv=TimeSeriesSplit(n_splits=5),
+                scoring={"MAE": "neg_mean_absolute_error", "RMSE": "neg_root_mean_squared_error"},
+                refit="MAE",
+                verbose=1,
                 n_jobs=1
             )
 
-            grid_search.fit(X_train, y_train)
-
-            print(f"Besten Parameter: {grid_search.best_params_}")
-            print(f"Bester Score (neg MAE): {grid_search.best_score_:.2f}")
+            grid_search.fit(x, y)
 
             best_model = grid_search.best_estimator_
-            best_pred = best_model.predict(X_test)
-            best_mae = mean_absolute_error(y_test, best_pred)
 
-            print(f"MAE best_modell auf Testdaten: {best_mae:.2f}")
+            best_idx = grid_search.best_index_
             
+            best_mae = grid_search.cv_results_['mean_test_MAE'][best_idx] * -1
+            best_rmse = grid_search.cv_results_['mean_test_RMSE'][best_idx] * -1
 
-    
+            importances = best_model.feature_importances_
+            feature_names = x.columns
+
+            print_feature_importances(best_model, x.columns, position_name, top_n=10)
+            print(f"Beste Parameter: {grid_search.best_params_}")
+            print(f"Bester CV MAE: {best_mae:.2f}")
+            print(f"Bester CV RMSE: {best_rmse:.2f}")
+
+            if SAFE_MODELL:
+                filename = f"model_{position_name}_best.pkl"
+                joblib.dump(best_model, filename)
+                print(f"Bestes Model für {position_name} gespeichert")
+
     # goalkeeper
     if TRAIN_GOALKEEPER:
         print(f"\nStarte Training für: Torwart")
 
-        X_train_gk, X_test_gk, y_train_gk, y_test_gk = split_df(df_gk)
+        x_gk, y_gk = prepare_traindata(df_gk)
 
         model_gk = XGBRegressor(
             n_estimators=n_estimators,
@@ -132,18 +134,16 @@ if __name__ == "__main__":
             n_jobs=1
         )
 
-        model_gk.fit(X_train_gk, y_train_gk)
+        scores = cross_val_score(model_gk, x_gk, y_gk, cv=TimeSeriesSplit(n_splits=5), scoring="neg_mean_absolute_error")
 
-        model_gk_pred = model_gk.predict(X_test_gk)
+        model_gk.fit(x_gk, y_gk)
 
-        mae_gk = mean_absolute_error(y_test_gk, model_gk_pred)
-
-        rmse_gk = np.sqrt(mean_squared_error(y_test_gk, model_gk_pred))
+        mae_gk = scores.mean() * -1          
 
         print(f"MAE Torwart: {mae_gk:.2f}")
-        print(f"RMSE Torwart: {rmse_gk:.2f}") 
 
-        joblib.dump(model_gk, "model_gk.pkl")
-        print("Model GK gespeichert")
+        if SAFE_MODELL:
+            joblib.dump(model_gk, "model_gk.pkl")
+            print("Model GK gespeichert")
 
     
