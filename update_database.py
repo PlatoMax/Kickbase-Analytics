@@ -193,21 +193,6 @@ if latest_matchday_db < int(latest_matchday_kickbase):
 else: 
     print("Database ist auf dem neusten Stand")
 
-squad = get_squad(league_id, token, cookies)
-market = get_players_on_market(league_id, token, cookies)
-budget = get_budget(league_id, token, cookies)
-
-players_for_prediction = market + squad
-
-predictions = get_all_predictions(players_for_prediction)
-run_optimizer(market_players=market, squad_players=squad, budget=budget, predictions=predictions)
-
 end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60
 print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minuten:.2f} Minuten gespeichert.")
-
-
-# todo: 
-# mehr try except Blöcke einbauen für mögliche Fehler
-# mehr Kommentare für besseres Verständnis einfügen
-# Backups und Schutzmechanismen für die Datenbanken anlegen. Historische Daten können nicht zurückgeholt werden

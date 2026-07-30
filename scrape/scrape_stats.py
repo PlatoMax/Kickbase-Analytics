@@ -262,7 +262,7 @@ def get_league_id(token, cookies, l_name=LEAGUE_NAME):
 
 
 def get_budget(league_id, token, cookies):
-    """Gets the user's budget for a given league."""
+    """Gets the user's budget for a given league_id."""
 
     url = f"{API_URL}/leagues/{league_id}/me/budget"
     response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)

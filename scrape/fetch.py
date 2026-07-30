@@ -2,6 +2,10 @@ import requests
 from dotenv import load_dotenv
 import os
 from scrape.config import API_URL, LEAGUE_NAME
+from datetime import datetime, timezone
+from scrape.scrape_stats import *
+
+# eher allgemeinere Sachen während scrape_stats sich auf die Stats der Spieler fokussiert
 
 load_dotenv()
 
@@ -77,3 +81,17 @@ def get_budget(token, league_id, cookies):
     return response.json()
 
 
+def get_leaderboard(token, league_id, cookies):
+    response = requests.get(
+        f"{API_URL}/leagues/{league_id}/ranking",
+        headers={"tkn": token, "Accept": "application/json"},
+        cookies=cookies
+    )
+
+    if response.status_code != 200:
+        print("Leaderboard-Abfrage failed")
+        return []
+
+    data = response.json()
+    players = [(player["n"], player["sp"]) for player in data["us"]]
+    return sorted(players, key=lambda x: x[1], reverse=True)
