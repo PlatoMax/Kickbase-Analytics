@@ -4,3 +4,5 @@ kickbase.db
 .DS_Store
 __pycache__/
 sandbox.py 
+ids.json
+
