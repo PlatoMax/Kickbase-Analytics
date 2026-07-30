@@ -1,8 +1,11 @@
 import sqlite3
+from pathlib import Path
 import re
 
+DB_PATH = Path(__file__).resolve().with_name("kickbase.db")
+
 def get_connection():
-    conn = sqlite3.connect("kickbase.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 

@@ -5,7 +5,7 @@ from scrape.config import API_URL
 from scrape.fetch import login
 from scrape.scrape_stats import *
 from database import *
-from predict import get_all_predictions
+from models.predict import get_all_predictions
 from optimizer import run_optimizer
 import random
 

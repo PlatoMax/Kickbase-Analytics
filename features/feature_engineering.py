@@ -1,11 +1,12 @@
 import pandas as pd
 import sqlite3
 import numpy as np
+from database import DB_PATH
 
 
 # Get Player_stats_field und Goalkeeper 
 def get_df_field(): 
-    conn = sqlite3.connect("kickbase.db")
+    conn = sqlite3.connect(DB_PATH)
 
     query_field_players = """
     SELECT ps.*, p.position 
@@ -23,7 +24,7 @@ def get_df_field():
     return df_field_players
 
 def get_df_gk():
-    conn = sqlite3.connect("kickbase.db")
+    conn = sqlite3.connect(DB_PATH)
     query_goalkeeper = "SELECT * FROM player_stats_gk"
     df_goalkeeper = pd.read_sql_query(query_goalkeeper, conn)
     conn.close()
@@ -326,7 +327,7 @@ def get_final_ml_data(df, is_training=True):
     
     
 
-    conn = sqlite3.connect("kickbase.db")
+    conn = sqlite3.connect(DB_PATH)
     query_team_stats = "SELECT * FROM team_stats"
     df_team_stats = pd.read_sql_query(query_team_stats, conn)
     conn.close()

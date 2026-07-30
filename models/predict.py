@@ -1,13 +1,16 @@
 import joblib
-from feature_engineering import *
+from features.feature_engineering import *
 from database import *
 import pandas as pd
+from pathlib import Path
+
+MODEL_DIR = Path(__file__).resolve().parent
 
 
-model_def = joblib.load("model_Abwehr.pkl")
-model_mf = joblib.load("model_Mittelfeld.pkl")
-model_off = joblib.load("model_Angriff.pkl")
-model_gk = joblib.load("model_gk.pkl")
+model_def = joblib.load(MODEL_DIR / "model_Abwehr.pkl")
+model_mf = joblib.load(MODEL_DIR / "model_Mittelfeld.pkl")
+model_off = joblib.load(MODEL_DIR / "model_Angriff.pkl")
+model_gk = joblib.load(MODEL_DIR / "model_gk.pkl")
 
 
 def get_features(players):

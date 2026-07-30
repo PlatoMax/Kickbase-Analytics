@@ -1,10 +1,13 @@
-from feature_engineering import get_final_ml_data, split_by_position, get_df_field, get_df_gk
+from features.feature_engineering import get_final_ml_data, split_by_position, get_df_field, get_df_gk
 import pandas as pd
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import GridSearchCV, TimeSeriesSplit, cross_val_score
 import numpy as np
 import joblib 
+from pathlib import Path
+
+MODEL_DIR = Path(__file__).resolve().parent
 
 
 def prepare_traindata(df):
@@ -74,7 +77,7 @@ if __name__ == "__main__":
 
                 model.fit(x, y)
                 if SAFE_MODELL:
-                    filename = f"model_{position_name}.pkl"
+                    filename = MODEL_DIR / f"model_{position_name}.pkl"
                     joblib.dump(model, filename)
                     print(f"Model für {position_name} gespeichert")
 
@@ -115,7 +118,7 @@ if __name__ == "__main__":
             print(f"Bester CV RMSE: {best_rmse:.2f}")
 
             if SAFE_MODELL:
-                filename = f"model_{position_name}_best.pkl"
+                filename = MODEL_DIR / f"model_{position_name}_best.pkl"
                 joblib.dump(best_model, filename)
                 print(f"Bestes Model für {position_name} gespeichert")
 
@@ -143,7 +146,7 @@ if __name__ == "__main__":
         print(f"MAE Torwart: {mae_gk:.2f}")
 
         if SAFE_MODELL:
-            joblib.dump(model_gk, "model_gk.pkl")
+            joblib.dump(model_gk, MODEL_DIR / "model_gk.pkl")
             print("Model GK gespeichert")
 
     
