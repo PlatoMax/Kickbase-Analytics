@@ -95,3 +95,40 @@ def get_leaderboard(token, league_id, cookies):
     data = response.json()
     players = [(player["n"], player["sp"]) for player in data["us"]]
     return sorted(players, key=lambda x: x[1], reverse=True)
+
+def get_season(last = False): # last = False -> aktuelle Saison, last = True -> letzte Saison
+    current_year = datetime.now().year
+    if datetime.now().month < 7:
+        current_year -= 1
+
+    if last:
+        current_year -= 1
+
+    return current_year
+
+def get_kickbase_deadline(season):
+    matches = get_data_matchdays(season)
+    now = datetime.now(timezone.utc)
+
+    future_matches = [(datetime.fromisoformat(match["matchDateTimeUTC"].replace("Z", "+00:00")), match["groupOrderID"]) for match in matches if datetime.fromisoformat(match["matchDateTimeUTC"].replace("Z", "+00:00")) > now]
+    if not future_matches:
+        print("Keine zukünftigen Spiele gefunden.")
+        return None
+
+    upcoming_md = future_matches[0][1]
+    md_already_started = any(m[1] == upcoming_md and m[0] < now for m in all_matches)
+
+    target_md = upcoming_md + 1 if md_already_started else upcoming_md
+    target_matches = [m[0] for m in all_matches if m[1] == target_md]
+
+    if not target_matches:
+        print(f"Keine Spiele für Spieltag {target_md} gefunden.")
+        return None
+    
+    deadline_utc = min(target_matches)
+    
+    return {
+        "matchday": target_md,
+        "deadline_utc": deadline_utc
+    }
+        

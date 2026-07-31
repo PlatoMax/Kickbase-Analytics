@@ -42,6 +42,21 @@ def get_leaderboard_endpoint():
         "leaderboard": leaderboard
     }
 
+@app.get("/api/deadline") # Zeit ist in UTC 
+def get_deadline():
+    current_season = get_season()
+    deadline_data = get_kickbase_deadline(current_season)
+
+    if not deadline_data:
+        return {"matchday": None,
+                 "deadline": None
+                 }
+    
+    return {
+        "matchday": deadline_data["matchday"],
+        "deadline": deadline_data["deadline_utc"]
+    }
+
 #----------------------------------------------------------------------------------------------
 # Tab 2: Squad
 #----------------------------------------------------------------------------------------------

@@ -2,7 +2,7 @@ import time
 from datetime import datetime, timedelta
 from scrape.getIDs import *
 from scrape.config import API_URL
-from scrape.fetch import login
+from scrape.fetch import login, get_season
 from scrape.scrape_stats import *
 from database import *
 from models.predict import get_all_predictions
@@ -119,12 +119,12 @@ for team in kb_teams:
 
 #teams_stats:
 
-current_start_year = datetime.now().year
-if datetime.now().month < 8:
-   current_start_year -= 1
 
-current_season = f"{current_start_year}/{current_start_year + 1}"
-last_season = f"{current_start_year - 1}/{current_start_year}"
+cur_start_year = get_season()
+last_start_year = get_season(last=True)
+
+current_season = f"{cur_start_year}/{cur_start_year + 1}"
+last_season = f"{last_start_year}/{last_start_year + 1}"
 
 # total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
 total_entries_databank += extract_and_save_teamstats(current_season)
