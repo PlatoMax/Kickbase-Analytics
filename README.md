@@ -1,7 +1,7 @@
 Kickbase-Analytics
 
-Dieses Projekt soll mit XGBoost vorhersagen, wie gut ein Spieler in den nächsten Spielen performt.
-Darauf basierend sollen Kauf- und Verkaufsentscheidungen unterstützt werden.
+Dieses Projekt soll mit XGBoost vorhersagen, wie gut ein Spieler aus der Bundesliga in den nächsten Spielen performt.
+Darauf basierend sollen Kauf- und Verkaufsentscheidungen unterstützt werden. 
 
 Aktueller Status:
 
