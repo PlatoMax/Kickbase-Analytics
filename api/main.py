@@ -20,9 +20,12 @@ def get_login_info():
         TOKEN, LEAGUE_ID, COOKIES = login()
     return TOKEN, LEAGUE_ID, COOKIES
 
+
 #----------------------------------------------------------------------------------------------
 # Tab 1: Overview
 #----------------------------------------------------------------------------------------------
+
+
 @app.get("/api/kpi")
 def get_kpi():
     token, league_id, cookies = get_login_info()
@@ -57,6 +60,7 @@ def get_deadline():
         "deadline": deadline_data["deadline_utc"]
     }
 
+
 #----------------------------------------------------------------------------------------------
 # Tab 2: Squad
 #----------------------------------------------------------------------------------------------
@@ -67,19 +71,37 @@ def optimize_team():
 
     token, league_id, cookies = get_login_info()
 
-    squad = get_squad(league_id, token, cookies)
-    market = get_players_on_market(league_id, token, cookies)
-    budget = get_budget(league_id, token, cookies)
+    squad = get_squad(token, league_id, cookies)
+    market = get_players_on_market(token, league_id, cookies)
+    budget_before = get_budget(token, league_id, cookies)
 
     players_for_prediction = market + squad
     predictions = get_all_predictions(players_for_prediction)
-    optimal_team = run_optimizer(market_players=market, squad_players=squad, budget=budget, predictions=predictions)
+    optimal_team = run_optimizer(market_players=market, squad_players=squad, budget=budget_before, predictions=predictions)
+
+
+    sum_sells = sum(player["player_price"] for player in optimal_team["sell"])
+    sum_buys = sum(player["player_price"] for player in optimal_team["buy"])
+    budget_after = budget_before + sum_sells - sum_buys
 
     return {
-        "status": "success",
         "optimal_team": optimal_team,
-        "budget": budget
+        "budget_before": budget_before,
+        "budget_after": budget_after
     }
+
+@app.get("/api/squad")
+def get_squad_endpoint():
+    token, league_id, cookies = get_login_info()
+    squad = get_squad(token, league_id, cookies)
+    return {
+        "squad": squad
+    }
+
+
+#----------------------------------------------------------------------------------------------
+# Tab 3: transfer market
+#----------------------------------------------------------------------------------------------
 
 
 

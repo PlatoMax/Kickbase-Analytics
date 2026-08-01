@@ -106,25 +106,32 @@ def get_season(last = False): # last = False -> aktuelle Saison, last = True -> 
 
     return current_year
 
+
 def get_kickbase_deadline(season):
     matches = get_data_matchdays(season)
     now = datetime.now(timezone.utc)
 
-    future_matches = [(datetime.fromisoformat(match["matchDateTimeUTC"].replace("Z", "+00:00")), match["groupOrderID"]) for match in matches if datetime.fromisoformat(match["matchDateTimeUTC"].replace("Z", "+00:00")) > now]
+    all_matches = [
+        (datetime.fromisoformat(m["matchDateTimeUTC"].replace("Z", "+00:00")), m["group"]["groupOrderID"]) 
+        for m in matches
+    ]
+
+    future_matches = [m for m in all_matches if m[0] > now]
+    
     if not future_matches:
         print("Keine zukünftigen Spiele gefunden.")
         return None
 
     upcoming_md = future_matches[0][1]
+
     md_already_started = any(m[1] == upcoming_md and m[0] < now for m in all_matches)
 
     target_md = upcoming_md + 1 if md_already_started else upcoming_md
     target_matches = [m[0] for m in all_matches if m[1] == target_md]
-
-    if not target_matches:
-        print(f"Keine Spiele für Spieltag {target_md} gefunden.")
-        return None
     
+    if not target_matches:
+        return None
+        
     deadline_utc = min(target_matches)
     
     return {
