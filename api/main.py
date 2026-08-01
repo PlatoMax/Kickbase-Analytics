@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from scrape.fetch import * 
-from scrape.scrape_stats import get_squad, get_players_on_market, get_budget
+from scrape.scrape_stats import *
 from models.predict import get_all_predictions
 from optimizer import run_optimizer
 from scrape.config import *
@@ -103,6 +103,38 @@ def get_squad_endpoint():
 # Tab 3: transfer market
 #----------------------------------------------------------------------------------------------
 
+@app.get("/api/market")
+def get_transfer_market():
+    token, league_id, cookies = get_login_info()
+    market = get_players_on_market(token, league_id, cookies)
+    predictions = get_all_predictions(market)
+
+    matchdays = get_data_matchdays(get_season())
+    deadline = get_kickbase_deadline(get_season())
+    current_md = deadline["matchday"] if deadline else None
+    opponents = get_next_opponents(matchdays, current_md)
+
+    for player in market:
+        player_id = player["i"]
+        team_id = str(player["tid"])
+
+        player["predicted_points"] = predictions.get(player_id, 0)
+        player["points_per_price"] = player["predicted_points"] / player.get("prc", 1)
+
+        team_name = KICKBASE_ID_TO_NAME.get(team_id)
+
+        if not team_name:
+            player_info = get_player_info(token, cookies, player_id)
+            team_name = player_info.get("team_name")
+            if team_name:
+                add_if_team_mapping_dont_exists(team_id, team_name)
+
+        player["next_opponent"] = opponents.get(team_name, []) if team_name else []
+
+
+    return {
+        "market": market
+    }
 
 
 

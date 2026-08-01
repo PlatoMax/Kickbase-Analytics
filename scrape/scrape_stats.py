@@ -234,7 +234,7 @@ def save_team_mapping(mapping):
 
 KICKBASE_ID_TO_NAME = load_team_mapping()
     
-def add_if_team_mapping__dont_exists(teamid, teamname): 
+def add_if_team_mapping_dont_exists(teamid, teamname): 
     # Wenn Teamid und Teamname bekannt automatisch eintragen falls noch nicht vorhanden. Ideal nach get_player_info
     if teamid not in KICKBASE_ID_TO_NAME:
         KICKBASE_ID_TO_NAME[teamid] = teamname
@@ -632,43 +632,40 @@ def get_data_matchdays(season):
     return matchdays
 
 def get_next_opponents(matchdays, current_matchday): 
-    '''return dictonary mit jeweils nächsten Gegner und ob Heim oder Auswärtsspiel'''
-    opponents = {}
-    target_matchday = None
-    for match in matchdays:
-        if match["group"].get("groupOrderID") > current_matchday:
-            target_matchday = match["group"].get("groupOrderID")
-            break
-
-    if target_matchday is None: #Edge Case Saison ist vorbei
+    '''return dictonary mit jeweils nächsten 3 Gegner und ob Heim oder Auswärtsspiel'''
+    if current_matchday is None: # Edge Case: Saison ist vorbei
         return {}
+    
+    opponents = {}
     
     for match in matchdays:
         matchday_number = match["group"].get("groupOrderID")
         
-        if matchday_number > target_matchday + 2: # Nach 3 Spielen abbrechen da nur die nächsten 3 Gegner relevant sind
+        if matchday_number < current_matchday:
+            continue
+            
+        if matchday_number > current_matchday + 2:
             break
             
-        if matchday_number >= target_matchday:
-            team1_name = match["team1"]["teamName"]
-            team1_name_kb = OPENLIGADB_TO_KICKBASE[team1_name]
+        team1_name = match["team1"]["teamName"]
+        team1_name_kb = OPENLIGADB_TO_KICKBASE[team1_name]
 
-            team2_name = match["team2"]["teamName"]
-            team2_name_kb = OPENLIGADB_TO_KICKBASE[team2_name]    
-    
-            if team1_name_kb not in opponents:
-                opponents[team1_name_kb] = []
-            if team2_name_kb not in opponents:
-                opponents[team2_name_kb] = []
+        team2_name = match["team2"]["teamName"]
+        team2_name_kb = OPENLIGADB_TO_KICKBASE[team2_name]    
 
-            opponents[team1_name_kb].append({
-                "opponent": team2_name_kb,
-                "Heimvorteil": 1
-            })
-            opponents[team2_name_kb].append({
-                "opponent": team1_name_kb,
-                "Heimvorteil": 0
-            })
+        if team1_name_kb not in opponents:
+            opponents[team1_name_kb] = []
+        if team2_name_kb not in opponents:
+            opponents[team2_name_kb] = []
+
+        opponents[team1_name_kb].append({
+            "opponent": team2_name_kb,
+            "Heimvorteil": 1
+        })
+        opponents[team2_name_kb].append({
+            "opponent": team1_name_kb,
+            "Heimvorteil": 0
+        })
             
     return opponents
 
