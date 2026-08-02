@@ -28,9 +28,6 @@ def fetch_deadline():
 @st.cache_data(ttl=600)
 def fetch_optimized_team():
     response = requests.get("http://127.0.0.1:8000/api/optimized_team")
-    print("###############################################\n\n\n\n\n")
-    print(response.status_code)
-    print(response.json())
     return response.json()
 
 @st.cache_data(ttl=600)
