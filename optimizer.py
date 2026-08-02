@@ -4,8 +4,8 @@ from pulp import PULP_CBC_CMD
 
 def run_optimizer(market_players, squad_players, budget, predictions):
         # Umwandeln da ursprüngliches Format Liste von Dictionaries war
-        market_players = {p["player_id"]: {**p, "points": predictions[p["player_id"]]} for p in market_players}
-        squad_players = {p["player_id"]: {**p, "points": predictions[p["player_id"]]} for p in squad_players}
+        market_players = {p["player_id"]: {**p, "points": predictions.get(p["player_id"],0.0)} for p in market_players}
+        squad_players = {p["player_id"]: {**p, "points": predictions.get(p["player_id"],0.0)} for p in squad_players}
 
         prob = pulp.LpProblem("Kickbase_Optimizer", pulp.LpMaximize)
 

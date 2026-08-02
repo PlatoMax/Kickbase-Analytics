@@ -261,17 +261,6 @@ def get_league_id(token, cookies, l_name=LEAGUE_NAME):
          
 
 
-def get_budget(league_id, token, cookies):
-    """Gets the user's budget for a given league_id."""
-
-    url = f"{API_URL}/leagues/{league_id}/me/budget"
-    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
-    try: 
-        data = response.json()
-        return int(data.get("b", 0))
-    except Exception as e:
-        print(f"Fehler in get_budget: {e}")
-        return 0
 
 
 def get_players_on_market(league_id, token, cookies):
@@ -304,38 +293,7 @@ def get_players_on_market(league_id, token, cookies):
         )
     return players
 
-def get_squad(league_id, token, cookies):
-    url = f"{API_URL}/leagues/{league_id}/squad"
-    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
-
-    try:
-        data = response.json()
-    except Exception as e:
-        print(f"No response from get_squad: {e}")
-        return None
-    
-    # print(data)    # Debug Ausgabe
-
-    squad = []
-    for player in data.get("it"):
-        name = player.get("n")
-        player_id = player.get("i")
-        player_pos = int(player.get("pos"))
-        team_id = player.get("tid")
-        player_price = player.get("mv")
-
-        squad.append({
-            "Playername": name,
-            "player_id": player_id,
-            "player_pos": player_pos,
-            "team_id": team_id,
-            "player_price": player_price
-        }
-        )
-
-    return squad
         
-
 def get_min_season_kickbase(): #letzte zu betrachtende Saison im Kickbase-Format z.B. 2025/2026
     current_year = datetime.now().year
     if datetime.now().month >= 8:
@@ -610,7 +568,10 @@ OPENLIGADB_TO_KICKBASE = {
     "VfL Wolfsburg": "Wolfsburg",
     "1. FC Heidenheim 1846": "Heidenheim",
     "Holstein Kiel": "Kiel",
-    "VfL Bochum": "Bochum"
+    "VfL Bochum": "Bochum",
+    "SC Paderborn 07": "Paderborn",
+    "SV 07 Elversberg": "Elversberg",
+    "FC Schalke 04": "Schalke",
 }
 
 def kb_season_to_openLiga_season(kb_season):

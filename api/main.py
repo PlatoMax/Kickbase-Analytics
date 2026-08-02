@@ -8,8 +8,8 @@ from scrape.config import *
 
 app = FastAPI()
 
-TOKEN = None
 LEAGUE_ID = None
+TOKEN = None
 COOKIES = None
 
 
@@ -18,7 +18,7 @@ def get_login_info():
     global TOKEN, LEAGUE_ID, COOKIES
     if TOKEN is None or LEAGUE_ID is None or COOKIES is None:
         TOKEN, LEAGUE_ID, COOKIES = login()
-    return TOKEN, LEAGUE_ID, COOKIES
+    return LEAGUE_ID, TOKEN, COOKIES
 
 
 #----------------------------------------------------------------------------------------------
@@ -28,10 +28,10 @@ def get_login_info():
 
 @app.get("/api/kpi")
 def get_kpi():
-    token, league_id, cookies = get_login_info()
-    budget = get_budget(token, league_id, cookies)
-    squad = get_squad(token, league_id, cookies)
-    expected_points = sum(get_all_predictions(squad).values())
+    league_id, token, cookies = get_login_info()
+    budget = get_budget(league_id, token, cookies)
+    squad = get_squad(league_id, token, cookies)
+    expected_points = int(sum(get_all_predictions(squad).values()))
     return {
         "budget": budget,
         "expected_points": expected_points
@@ -39,7 +39,7 @@ def get_kpi():
 
 @app.get("/api/leaderboard")
 def get_leaderboard_endpoint():
-    token, league_id, cookies = get_login_info()
+    league_id, token, cookies = get_login_info()
     leaderboard = get_leaderboard(token, league_id, cookies)
     return {
         "leaderboard": leaderboard
@@ -69,15 +69,15 @@ def get_deadline():
 @app.get("/api/optimized_team")
 def optimize_team():
 
-    token, league_id, cookies = get_login_info()
+    league_id, token, cookies = get_login_info()
 
-    squad = get_squad(token, league_id, cookies)
-    market = get_players_on_market(token, league_id, cookies)
-    budget_before = get_budget(token, league_id, cookies)
+    squad = get_squad(league_id, token, cookies)
+    market = get_players_on_market(league_id, token, cookies)
+    budget_before = get_budget(league_id, token, cookies)
 
     players_for_prediction = market + squad
     predictions = get_all_predictions(players_for_prediction)
-    optimal_team = run_optimizer(market_players=market, squad_players=squad, budget=budget_before, predictions=predictions)
+    optimal_team = run_optimizer(market, squad, budget_before, predictions)
 
 
     sum_sells = sum(player["player_price"] for player in optimal_team["sell"])
@@ -92,8 +92,8 @@ def optimize_team():
 
 @app.get("/api/squad")
 def get_squad_endpoint():
-    token, league_id, cookies = get_login_info()
-    squad = get_squad(token, league_id, cookies)
+    league_id, token, cookies = get_login_info()
+    squad = get_squad(league_id, token, cookies)
     return {
         "squad": squad
     }
@@ -105,8 +105,8 @@ def get_squad_endpoint():
 
 @app.get("/api/market")
 def get_transfer_market():
-    token, league_id, cookies = get_login_info()
-    market = get_players_on_market(token, league_id, cookies)
+    league_id, token, cookies = get_login_info()
+    market = get_players_on_market(league_id, token, cookies)
     predictions = get_all_predictions(market)
 
     matchdays = get_data_matchdays(get_season())
@@ -115,11 +115,11 @@ def get_transfer_market():
     opponents = get_next_opponents(matchdays, current_md)
 
     for player in market:
-        player_id = player["i"]
-        team_id = str(player["tid"])
+        player_id = player["player_id"]
+        team_id = str(player["team_id"])
 
-        player["predicted_points"] = predictions.get(player_id, 0)
-        player["points_per_price"] = player["predicted_points"] / player.get("prc", 1)
+        player["predicted_points"] = int(predictions.get(player_id, 0))
+        player["points_per_price"] = player["predicted_points"] / player.get("player_price", 1)
 
         team_name = KICKBASE_ID_TO_NAME.get(team_id)
 
@@ -142,3 +142,4 @@ def get_transfer_market():
 # mehr try except Blöcke einbauen für mögliche Fehler
 # mehr Kommentare für besseres Verständnis einfügen
 # Backups und Schutzmechanismen für die Datenbanken anlegen. Historische Daten können nicht zurückgeholt werden
+# prüfen ob irgendwo nach TeamID gesucht wird in team_mapping ohne hinzufügen von neuen TeamIDs

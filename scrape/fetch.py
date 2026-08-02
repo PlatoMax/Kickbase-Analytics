@@ -50,35 +50,49 @@ def get_market(token, league_id, cookies):
 
     return response.json().get("it", [])
 
+def get_squad(league_id, token, cookies):
+    url = f"{API_URL}/leagues/{league_id}/squad"
+    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
 
-def get_squad(token, league_id, cookies):
-    # Eigenes Team abfragen
-    response = requests.get(
-        f"{API_URL}/leagues/{league_id}/squad",
-        headers={"tkn": token, "Accept": "application/json"},
-        cookies=cookies
-    )
+    try:
+        data = response.json()
+    except Exception as e:
+        print(f"No response from get_squad: {e}")
+        return None
+    
+    # print(data)    # Debug Ausgabe
 
-    if response.status_code != 200:
-        print("Squad-Abfrage fehlgeschlagen!")
-        return []
+    squad = []
+    for player in data.get("it"):
+        name = player.get("n")
+        player_id = player.get("i")
+        player_pos = int(player.get("pos"))
+        team_id = player.get("tid")
+        player_price = player.get("mv")
 
-    return response.json().get("it", [])
+        squad.append({
+            "Playername": name,
+            "player_id": player_id,
+            "player_pos": player_pos,
+            "team_id": team_id,
+            "player_price": player_price
+        }
+        )
 
+    return squad
 
-def get_budget(token, league_id, cookies):
-    # Budget abfragen
-    response = requests.get(
-        f"{API_URL}/leagues/{league_id}/me/budget",
-        headers={"tkn": token, "Accept": "application/json"},
-        cookies=cookies
-    )
+def get_budget(league_id, token, cookies):
+    """Gets the user's budget for a given league_id."""
 
-    if response.status_code != 200:
-        print("Budget-Abfrage fehlgeschlagen!")
-        return {}
+    url = f"{API_URL}/leagues/{league_id}/me/budget"
+    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
+    try: 
+        data = response.json()
+        return int(data.get("b", 0))
+    except Exception as e:
+        print(f"Fehler in get_budget: {e}")
+        return 0
 
-    return response.json()
 
 
 def get_leaderboard(token, league_id, cookies):

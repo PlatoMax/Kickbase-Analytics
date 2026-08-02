@@ -7,9 +7,9 @@ from pathlib import Path
 MODEL_DIR = Path(__file__).resolve().parent
 
 
-model_def = joblib.load(MODEL_DIR / "model_Abwehr.pkl")
-model_mf = joblib.load(MODEL_DIR / "model_Mittelfeld.pkl")
-model_off = joblib.load(MODEL_DIR / "model_Angriff.pkl")
+model_def = joblib.load(MODEL_DIR / "model_Abwehr_best.pkl")
+model_mf = joblib.load(MODEL_DIR / "model_Mittelfeld_best.pkl")
+model_off = joblib.load(MODEL_DIR / "model_Angriff_best.pkl")
 model_gk = joblib.load(MODEL_DIR / "model_gk.pkl")
 
 
@@ -85,9 +85,9 @@ def get_all_predictions(players):
 
     def run_predictions_for_df(df, position):
         if df is None or df.empty:
-            print("DF ist leer oder none")
+            print(f"DF für Position {position} ist leer oder none")
             return
-        
+
         id_col = "kickbase_id" if "kickbase_id" in df.columns else "player_id"
         cur_ids = df[id_col].tolist()
 
