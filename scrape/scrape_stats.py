@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 import json
 import os
 
+
 # Ligainsider: 
 
 def safe_int(element):
@@ -278,6 +279,7 @@ def get_players_on_market(league_id, token, cookies):
         player_id = player.get("i")
         player_pos = int(player.get("pos"))
         team_id = player.get("tid")
+        team_name = KICKBASE_ID_TO_NAME.get(team_id, None)
         player_price = player.get("mv")
         expires_in_sec = player.get("exs", 0)
         expires_in_h = expires_in_sec / 60 / 60
@@ -287,6 +289,7 @@ def get_players_on_market(league_id, token, cookies):
             "player_id": player_id,
             "player_pos": player_pos,
             "team_id": team_id,
+            "team_name": team_name,
             "player_price": player_price,
             "expires": expires_in_h
         }

@@ -93,23 +93,37 @@ def optimize_team():
     predictions = get_all_predictions(players_for_prediction)
     optimal_team = run_optimizer(market, squad, budget_before, predictions)
 
-
     sum_sells = sum(player["player_price"] for player in optimal_team["sell"])
     sum_buys = sum(player["player_price"] for player in optimal_team["buy"])
     budget_after = budget_before + sum_sells - sum_buys
 
+    kategorien = ["buy", "sell", "hold"]
+    for action in kategorien:
+        if action in optimal_team:
+            for player in optimal_team[action]:
+                player["action"] = action
+
+    buy_and_hold_players = optimal_team.get("buy", []) + optimal_team.get("hold", [])
+    expected_points = int(sum(player.get("points", 0) for player in buy_and_hold_players))
+    
+    optimal_team = optimal_team.get("buy", []) + optimal_team.get("sell", []) + optimal_team.get("hold", [])
+
     return {
         "optimal_team": optimal_team,
         "budget_before": budget_before,
-        "budget_after": budget_after
+        "budget_after": budget_after,
+        "expected_points": expected_points
     }
 
 @app.get("/api/squad")
 def get_squad_endpoint():
     league_id, token, cookies = get_login_info()
     squad = get_squad(league_id, token, cookies)
+    predictions = get_all_predictions(squad)
+    expected_points = int(sum(predictions.values()))
     return {
-        "squad": squad
+        "squad": squad,
+        "expected_points": expected_points
     }
 
 

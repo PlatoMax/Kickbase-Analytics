@@ -9,6 +9,8 @@ from scrape.scrape_stats import *
 
 load_dotenv()
 
+KICKBASE_ID_TO_NAME = load_team_mapping()
+
 def login():
     # Einloggen und Token + League-ID zurückgeben
     email = os.getenv("EMAIL")
@@ -68,6 +70,7 @@ def get_squad(league_id, token, cookies):
         player_id = player.get("i")
         player_pos = int(player.get("pos"))
         team_id = player.get("tid")
+        team_name = KICKBASE_ID_TO_NAME.get(team_id, None)
         player_price = player.get("mv")
 
         squad.append({
@@ -75,6 +78,7 @@ def get_squad(league_id, token, cookies):
             "player_id": player_id,
             "player_pos": player_pos,
             "team_id": team_id,
+            "team_name": team_name,
             "player_price": player_price
         }
         )

@@ -4,7 +4,6 @@ from components.api import *
 from datetime import datetime
 
 st.set_page_config(page_title="Dashboard", layout="wide")
-
 kpi_data = fetch_kpis()
 leaderboard_dict = fetch_leaderboard()
 deadline_data = fetch_deadline()
@@ -27,12 +26,12 @@ with col1:
         st.metric(label="Expected Points", value=kpi_data['expected_points'])
 
     st.subheader("Leaderboard")
-    df_leaderboard = pd.DataFrame(leaderboard_dict["leaderboard"], columns=["Manager", "Punkte"])
+    df_leaderboard = pd.DataFrame(leaderboard_dict["leaderboard"], columns=["Manager", "Points"])
     df_leaderboard.index = range(1, len(df_leaderboard) + 1)
-    df_leaderboard.index.name = "Platz"
+    df_leaderboard.index.name = "Rank"
     st.dataframe(df_leaderboard)
 
 with col2:
-    df_matchups = pd.DataFrame(matchups["matchups"], columns=["Heim", "Auswärts"])
+    df_matchups = pd.DataFrame(matchups["matchups"], columns=["Home", "Away"])
     st.subheader("Matchups")
     st.dataframe(df_matchups, hide_index=True)
