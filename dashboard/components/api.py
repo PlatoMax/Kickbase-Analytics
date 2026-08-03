@@ -20,6 +20,10 @@ def fetch_deadline():
     response = requests.get("http://127.0.0.1:8000/api/deadline")
     return response.json()
 
+@st.cache_data(ttl=600)
+def fetch_matchups():
+    response = requests.get("http://127.0.0.1:8000/api/matchups")
+    return response.json()
 
 #----------------------------------------------------------------------------------------------
 # Tab 2: Squad

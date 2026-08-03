@@ -95,7 +95,7 @@ def get_budget(league_id, token, cookies):
 
 
 
-def get_leaderboard(token, league_id, cookies):
+def get_leaderboard(league_id, token, cookies):
     response = requests.get(
         f"{API_URL}/leagues/{league_id}/ranking",
         headers={"tkn": token, "Accept": "application/json"},
@@ -121,7 +121,7 @@ def get_season(last = False): # last = False -> aktuelle Saison, last = True -> 
     return current_year
 
 
-def get_kickbase_deadline(season):
+def get_kickbase_deadline(season, skip_started_matchday=True):
     matches = get_data_matchdays(season)
     now = datetime.now(timezone.utc)
 
@@ -140,7 +140,11 @@ def get_kickbase_deadline(season):
 
     md_already_started = any(m[1] == upcoming_md and m[0] < now for m in all_matches)
 
-    target_md = upcoming_md + 1 if md_already_started else upcoming_md
+    if skip_started_matchday and md_already_started:
+        upcoming_md += 1
+    else:
+        target_md = upcoming_md
+
     target_matches = [m[0] for m in all_matches if m[1] == target_md]
     
     if not target_matches:

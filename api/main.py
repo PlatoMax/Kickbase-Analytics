@@ -40,7 +40,7 @@ def get_kpi():
 @app.get("/api/leaderboard")
 def get_leaderboard_endpoint():
     league_id, token, cookies = get_login_info()
-    leaderboard = get_leaderboard(token, league_id, cookies)
+    leaderboard = get_leaderboard(league_id, token, cookies)
     return {
         "leaderboard": leaderboard
     }
@@ -48,7 +48,7 @@ def get_leaderboard_endpoint():
 @app.get("/api/deadline") # Zeit ist in UTC 
 def get_deadline():
     current_season = get_season()
-    deadline_data = get_kickbase_deadline(current_season)
+    deadline_data = get_kickbase_deadline(current_season, skip_started_matchday=True)
 
     if not deadline_data:
         return {"matchday": None,
@@ -60,6 +60,19 @@ def get_deadline():
         "deadline": deadline_data["deadline_utc"]
     }
 
+@app.get("/api/matchups")
+def get_matchups():
+    current_season = get_season()
+    matchday_data = get_data_matchdays(current_season)
+    deadline_data = get_kickbase_deadline(current_season, skip_started_matchday=False)
+    matchups = get_next_opponents(matchday_data, deadline_data["matchday"])
+    next_opponents = [(team, matches[0]["opponent"])  for team, matches in matchups.items() if matches[0]["Heimvorteil"] == 1]
+
+    return {
+        "matchups": next_opponents
+    }
+
+# Mögliche Erweiterung: Chart was die Punkte der Spieltage in der aktuellen Saison trackt, Leaderboard noch Sachen wie Kaderwert, Punkte letztes Spiel usw. hinzufügen
 
 #----------------------------------------------------------------------------------------------
 # Tab 2: Squad
