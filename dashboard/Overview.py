@@ -21,10 +21,17 @@ with col1:
         deadline_date = datetime.fromisoformat(deadline_string)
         st.metric(label="Deadline", value= deadline_date.strftime("%d.%m.%y %H:%M") + "Uhr")
 
-        st.metric(label="Budget", value=f"{kpi_data['budget']} €")
+        budget = int(kpi_data['budget'])
+        st.metric(label="Budget", value=f"{budget:,}€".replace(",", "."))
+
         st.metric(label="Expected Points", value=kpi_data['expected_points'])
 
-    df = pd.DataFrame(leaderboard_dict["leaderboard"], columns=["Manager", "Punkte"])
-    df.index = range(1, len(df) + 1)
-    df.index.name = "Platz"
-    st.dataframe(df)
+    df_deadline = pd.DataFrame(leaderboard_dict["leaderboard"], columns=["Manager", "Punkte"])
+    df_deadline.index = range(1, len(df_deadline) + 1)
+    df_deadline.index.name = "Platz"
+    st.dataframe(df_deadline)
+
+with col2:
+    df_matchups = pd.DataFrame(matchups["matchups"], columns=["Heim", "Auswärts"])
+    st.subheader("Matchups")
+    st.dataframe(df_matchups, hide_index=True)
