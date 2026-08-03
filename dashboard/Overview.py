@@ -26,10 +26,11 @@ with col1:
 
         st.metric(label="Expected Points", value=kpi_data['expected_points'])
 
-    df_deadline = pd.DataFrame(leaderboard_dict["leaderboard"], columns=["Manager", "Punkte"])
-    df_deadline.index = range(1, len(df_deadline) + 1)
-    df_deadline.index.name = "Platz"
-    st.dataframe(df_deadline)
+    st.subheader("Leaderboard")
+    df_leaderboard = pd.DataFrame(leaderboard_dict["leaderboard"], columns=["Manager", "Punkte"])
+    df_leaderboard.index = range(1, len(df_leaderboard) + 1)
+    df_leaderboard.index.name = "Platz"
+    st.dataframe(df_leaderboard)
 
 with col2:
     df_matchups = pd.DataFrame(matchups["matchups"], columns=["Heim", "Auswärts"])

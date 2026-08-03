@@ -73,6 +73,7 @@ def get_matchups():
     }
 
 # Mögliche Erweiterung: Chart was die Punkte der Spieltage in der aktuellen Saison trackt, Leaderboard noch Sachen wie Kaderwert, Punkte letztes Spiel usw. hinzufügen
+# Spieler auf dem Transfermarkt welche Kaufempfehlungen haben und bald auslaufen (z.B. nur ca 8h)
 
 #----------------------------------------------------------------------------------------------
 # Tab 2: Squad
