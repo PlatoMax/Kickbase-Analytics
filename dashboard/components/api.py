@@ -47,3 +47,7 @@ def fetch_squad():
 def fetch_market():
     response = requests.get("http://127.0.0.1:8000/api/market")
     return response.json()
+
+def place_bid(player_id, price):
+    response = requests.post(f"http://127.0.1:8000/api/buy_player/{player_id}/{price}")
+    return response.json()

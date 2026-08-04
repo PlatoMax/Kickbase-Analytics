@@ -137,17 +137,23 @@ def get_transfer_market():
     market = get_players_on_market(league_id, token, cookies)
     predictions = get_all_predictions(market)
 
+    squad = get_squad(league_id, token, cookies)
+    budget = get_budget(league_id, token, cookies)
+    optimized = run_optimizer(market, squad, budget, predictions)
+    buys_market = [str(player["player_id"]) for player in optimized.get("buy", [])]
+
     matchdays = get_data_matchdays(get_season())
     deadline = get_kickbase_deadline(get_season())
     current_md = deadline["matchday"] if deadline else None
     opponents = get_next_opponents(matchdays, current_md)
 
     for player in market:
-        player_id = player["player_id"]
+        player_id = str(player["player_id"])
         team_id = str(player["team_id"])
 
         player["predicted_points"] = int(predictions.get(player_id, 0))
         player["points_per_price"] = player["predicted_points"] / player.get("player_price", 1)
+        player["action"] = "buy" if player["player_id"] in buys_market else "/" 
 
         team_name = KICKBASE_ID_TO_NAME.get(team_id)
 
@@ -157,13 +163,30 @@ def get_transfer_market():
             if team_name:
                 add_if_team_mapping_dont_exists(team_id, team_name)
 
-        player["next_opponent"] = opponents.get(team_name, []) if team_name else []
-
+        next_opponents = opponents.get(team_name, []) if team_name else []
+        result = ""
+        for opponent in next_opponents:
+            team_name = opponent.get("opponent")
+            home_advantage = opponent.get("Heimvorteil")
+            home_away = "(H)" if home_advantage == 1 else "(A)"
+            result += f"{team_name} {home_away}, "
+        player["next_opponent"] = result.rstrip(", ")
 
     return {
         "market": market
     }
 
+@app.post("/api/buy_player/{player_id}/{price}")
+def buy_player(player_id, price):
+    league_id, token, cookies = get_login_info()
+    url = f"{API_URL}/leagues/{league_id}/market/{player_id}/offers"
+    payload = {"price": int(price)}
+    response = requests.post(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies, json=payload)
+
+    if response.status_code == 200:
+        return {"status": "success", "message": f"Gebot für {player_id} platziert."}
+    else:
+        return {"status": "error", "detail": response.text}
 
 
 # todo: 

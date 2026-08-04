@@ -28,10 +28,11 @@ with col1:
 
     df_squad = df_squad.rename(columns={"Playername": "Name", "player_pos": "Position", "team_name": "Team"})
 
-    st.dataframe(df_squad, hide_index=True, height=420)
+    st.dataframe(df_squad, hide_index=True, height="content")
 
 
 # Predicted Points ergänzen in Dataframe einbauen
+# action ergänzen für hold und sell sowie rot markieren wer verkauft werden soll
 
 with col2:
     st.subheader("Optimized Team")
@@ -53,6 +54,7 @@ with col2:
 
     df_optimized = df_optimized.rename(columns={"Playername": "Name", "player_pos": "Position",  "team_name": "Team", "player_price": "Price","expires": "Expires", "points": "Predicted Points", "action": "Action"})
 
-    st.dataframe(df_optimized, hide_index=True, height=420)
+    st.dataframe(df_optimized, hide_index=True, height="content")
 
-
+# Auf Spieler klicken und danach öffnet sich Pop-Up mit Spielerstats und wieso diese Punkte vorhergesagt wurden
+# hier und/oder in Tab 2 Knopf zum verkaufen von Spielern analog wie buy in Tab 3

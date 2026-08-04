@@ -261,9 +261,6 @@ def get_league_id(token, cookies, l_name=LEAGUE_NAME):
     return league_id
          
 
-
-
-
 def get_players_on_market(league_id, token, cookies):
     url = f"{API_URL}/leagues/{league_id}/market"
     response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
