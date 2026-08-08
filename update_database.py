@@ -196,3 +196,9 @@ else:
 end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60
 print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minuten:.2f} Minuten gespeichert.")
+
+
+# Optionen um direkt ganze Saison zu löschen und neu zu scrapen
+# prüfen ob gescraped werden muss
+# selber entscheiden ob man nur die aktuelle Saison oder auch die letzte Saison scrapen will
+# ggf. dafür einen Tab im Dashboard einbauen

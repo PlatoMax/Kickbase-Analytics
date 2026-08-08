@@ -57,4 +57,6 @@ with col2:
     st.dataframe(df_optimized, hide_index=True, height="content")
 
 # Auf Spieler klicken und danach öffnet sich Pop-Up mit Spielerstats und wieso diese Punkte vorhergesagt wurden
-# hier und/oder in Tab 2 Knopf zum verkaufen von Spielern analog wie buy in Tab 3
+# hier und/oder in Tab 3_market Knopf zum verkaufen von Spielern analog wie buy in Tab 3
+# Knopf um automatisch alle Spieler in die Startelf zu packen (vorraussetzung nur 11 Spieler im kader, ggf. Lösung wenn man mehr als 11 hat)
+# refresh button 

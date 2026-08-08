@@ -35,3 +35,9 @@ with col2:
     df_matchups = pd.DataFrame(matchups["matchups"], columns=["Home", "Away"])
     st.subheader("Matchups")
     st.dataframe(df_matchups, hide_index=True)
+
+
+
+
+# Neben Deadline restliche Zeit anzeigen in Tage, wenn weniger als 24h dann in Stunden und Minuten, wenn weniger als 1h dann in Minuten 
+# Überschrift "KPI Overview" über die Box schieben
