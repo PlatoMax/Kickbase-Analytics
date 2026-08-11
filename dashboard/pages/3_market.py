@@ -124,3 +124,4 @@ if button_clicked:
 # refresh button
 # Überlegung: damit Gebote dauerhaft gespeichert werden, könnte man statt session_state eine json nutzen
 # profit seit letztem Preisupdate ergänzen
+# Spalte für Spielerbild und maybe Vereinlogo hinter Vereinsnamen

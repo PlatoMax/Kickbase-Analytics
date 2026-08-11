@@ -314,6 +314,9 @@ def get_final_ml_data(df, is_training=True):
     if "market_value" in df.columns:
         df["market_value"] = pd.to_numeric(df["market_value"], errors="coerce")
 
+    if "points_per_value" in df.columns:
+        df["points_per_value"] = pd.to_numeric(df["points_per_value"], errors="coerce")
+
     if "position" not in df.columns:
         df["position"] = 1
 
