@@ -4,6 +4,7 @@ from components.api import *
 from datetime import datetime
 
 st.set_page_config(page_title="Dashboard", layout="wide")
+
 kpi_data = fetch_kpis()
 leaderboard_dict = fetch_leaderboard()
 deadline_data = fetch_deadline()
@@ -40,4 +41,4 @@ with col2:
 
 
 # Neben Deadline restliche Zeit anzeigen in Tage, wenn weniger als 24h dann in Stunden und Minuten, wenn weniger als 1h dann in Minuten 
-# Überschrift "KPI Overview" über die Box schieben
+# Chart mit performance von mir

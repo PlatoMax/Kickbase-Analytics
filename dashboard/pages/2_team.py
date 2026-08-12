@@ -20,13 +20,6 @@ with col1:
 
     df_squad = pd.DataFrame(squad["squad"])
     df_squad = df_squad.sort_values(by=["player_pos", "team_name", "Playername"])
-    df_squad = df_squad.drop(columns=["player_id","team_id"])
-    df_squad["player_price"] = df_squad["player_price"].apply(lambda x: f"{int(x): ,}€".replace(",", "."))
-
-    pos_mapping = {1: "Torwart", 2: "Abwehr", 3: "Mittelfeld", 4: "Angriff"}
-    df_squad["player_pos"] = df_squad["player_pos"].map(pos_mapping)
-
-    df_squad = df_squad.rename(columns={"Playername": "Name", "player_pos": "Position", "team_name": "Team"})
 
     st.dataframe(df_squad, hide_index=True, height="content")
 
