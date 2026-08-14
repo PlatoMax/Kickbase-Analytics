@@ -202,3 +202,8 @@ print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minute
 # prüfen ob gescraped werden muss
 # selber entscheiden ob man nur die aktuelle Saison oder auch die letzte Saison scrapen will
 # ggf. dafür einen Tab im Dashboard einbauen
+# Lösung finden um das Updaten zu beschleunigen, 
+#   Idee: gucken was der letzte Matchday in der Datenbank ist, aktuellen holen und für alle Spiele
+#    die dazwischen liegen nur scrapen für Spieler die gespielt haben 
+#   -> großteil der Spieler kann dann automatisch auf 0 Punkte und 0 Spielzeit gesetzt werden
+#   noch überlegen welche Nachteile das haben könnte

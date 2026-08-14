@@ -60,8 +60,19 @@ if "market" not in st.session_state:
 
 st.subheader("Transfer Market")
 
-st.slider(label="Default Overpay in %", min_value=0, max_value=100, 
+col1, col2 = st.columns([1,2])
+
+with col1:
+    st.slider(label="Default Overpay in %", min_value=0, max_value=100, 
           value=10, step=1, key="overpay_slider", width=300)
+
+with col2:
+    button_refresh = st.button("Refresh Market")
+
+if button_refresh:
+    if "market" in st.session_state:
+        del st.session_state["market"]
+    st.rerun()
 
 #######################
 # Place Bids: 
@@ -85,9 +96,9 @@ edited_market = st.data_editor(
                     on_change=format_bids
                     )
 
-button_clicked = st.button("Place Bids")
+button_bids = st.button("Place Bids")
 
-if button_clicked:
+if button_bids:
     df = st.session_state["market"]
 
     overpay_pct = st.session_state["overpay_slider"]
@@ -126,7 +137,7 @@ if button_clicked:
 
 # Budget ergänzen und sofort aktualisieren, wenn etwas unter Place Bid eingetragen wurde
 # Remove Bid ergänzen, ggf wenn man auf None setzt ausführen, da None nur wenn man rauslöscht, wird aber aktuell sofort zu "" ersetzt
-# refresh button (also col 1 und 2 mit Slider)
 # Überlegung: damit Gebote dauerhaft gespeichert werden, könnte man statt session_state eine json nutzen
 # profit seit letztem Preisupdate ergänzen
 # Spalte für Spielerbild und maybe Vereinlogo hinter Vereinsnamen, vermutlich kein Platz
+# neben Prozentualen Overpay auch absoluten Overpay ergänzen

@@ -58,10 +58,16 @@ def get_table(mode, data):
     df = pd.DataFrame(data)
 
     df.reset_index(drop=True, inplace=True)
-    if "predicted_points" in df.columns:
+        
+    if "points" in df.columns:
+        df["points"] = df["points"].apply(lambda x: f"{int(x): ,}" if pd.notnull(x) else "N/A")
+        df.rename(columns={"points": "Predicted Points"}, inplace=True)
+        
+    elif "predicted_points" in df.columns:
         df["predicted_points"] = df["predicted_points"].apply(lambda x: f"{int(x): ,}" if pd.notnull(x) else "N/A")
+        df.rename(columns={"predicted_points": "Predicted Points"}, inplace=True)
     else:
-        df["predicted_points"] = "N/A"
+        df["Predicted Points"] = "N/A"
 
     pos_mapping = {1: "Torwart", 2: "Abwehr", 3: "Mittelfeld", 4: "Angriff"}
     df["player_pos"] = df["player_pos"].map(pos_mapping)

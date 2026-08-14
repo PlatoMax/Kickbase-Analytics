@@ -115,17 +115,6 @@ def optimize_team():
         "expected_points": expected_points
     }
 
-@app.get("/api/squad")
-def get_squad_endpoint():
-    league_id, token, cookies = get_login_info()
-    squad = get_squad(league_id, token, cookies)
-    predictions = get_all_predictions(squad)
-    expected_points = int(sum(predictions.values()))
-    return {
-        "squad": squad,
-        "expected_points": expected_points
-    }
-
 
 #----------------------------------------------------------------------------------------------
 # Tab 3: transfer market
