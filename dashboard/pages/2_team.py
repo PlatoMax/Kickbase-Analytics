@@ -52,6 +52,12 @@ with col1:
     for player in sold_players:
         st.success(f"Successfully sold {player}.")
 
+    if "sold_players" in st.session_state:
+        del st.session_state["sold_players"]
+    if "errors_during_sale" in st.session_state:
+        del st.session_state["errors_during_sale"]
+
+
 with col2:
     st.subheader("Optimized Team")
     st.metric(label="Budget after changes", value=f"{st.session_state['budget_after']:,}€".replace(",", "."))
@@ -107,9 +113,8 @@ if sell_button:
 
 
 # Auf Spieler klicken und danach öffnet sich Pop-Up mit Spielerstats und wieso diese Punkte vorhergesagt wurden
-# Knopf um automatisch alle Spieler in die Startelf zu packen (vorraussetzung nur 11 Spieler im kader, ggf. Lösung wenn man mehr als 11 hat)
-# refresh button 
+# Knopf um automatisch alle Spieler in die Startelf zu packen (vorraussetzung nur 11 Spieler im kader, ggf. Lösung wenn man mehr als 11 hat, prüfen ob überhaupt möglich)
 # wenn man mehr als 11 Spieler im Kader hat, sind die expected Points höher als bei optimized_squad, maybe separat berechnen wenn man optimized nur auf dem Kader anwendet und die Spieler mit "hold" 
-# Größe aktuellem Kader über dem Dataframe 
-# Option verkauf von Spieler zu blocken also das Spieler als unverkäuflich betrachtet werden, sofern es nicht rausgenommen wird
+# Größe aktuellem Kader über dem Dataframe anzeigen
+# Option verkauf von Spieler zu blocken also das Spieler als unverkäuflich betrachtet werden, sofern es nicht rausgenommen wird und immer in optimized_squad bleibt
 # Sicherheitsmechanismus beim Verkauf von Spielern, welche nicht als sell verkauft sind
