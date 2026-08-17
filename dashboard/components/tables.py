@@ -72,8 +72,9 @@ def get_table(mode, data):
     df["player_price"] = df["player_price"].apply(lambda x: f"{int(x): ,}€".replace(",", "."))
 
     if mode == "market":
-        df["expires"] = df["expires"].apply(lambda x: f"{int(x): ,}h {int((x - int(x)) * 60)}m" if pd.notnull(x) else "-")
         df.sort_values(by=["expires"], inplace=True)
+        df["expires"] = df["expires"].apply(lambda x: f"{int(x): ,}h {int((x - int(x)) * 60)}m" if pd.notnull(x) else "-")
+    
 
         df["place_bid_raw"] = 0
         df["Place Bid"] = df["place_bid_raw"].apply(lambda x: f"{int(x): ,}€".replace(",", ".") if x > 0 else "") 
