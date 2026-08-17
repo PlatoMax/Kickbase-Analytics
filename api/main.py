@@ -115,6 +115,16 @@ def optimize_team():
         "expected_points": expected_points
     }
 
+@app.post("/api/sell_player/{player_id}")
+def sell_player(player_id):
+    league_id, token, cookies = get_login_info()
+    url = f"{API_URL}/leagues/{league_id}/market/{player_id}/sell"
+    response = requests.post(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
+
+    if response.status_code == 200:
+        return {"status": "success"}
+    else:
+        return {"status": "error", "detail": response.text}
 
 #----------------------------------------------------------------------------------------------
 # Tab 3: transfer market

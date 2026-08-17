@@ -29,9 +29,12 @@ def fetch_matchups():
 # Tab 2: Squad
 #----------------------------------------------------------------------------------------------
 
-@st.cache_data(ttl=600)
 def fetch_optimized_team():
     response = requests.get("http://127.0.0.1:8000/api/optimized_team")
+    return response.json()
+
+def sell_player(player_id):
+    response = requests.post(f"http://127.0.0.1:8000/api/sell_player/{player_id}")
     return response.json()
 
 #----------------------------------------------------------------------------------------------
@@ -44,5 +47,5 @@ def fetch_market():
     return response.json()
 
 def place_bid(player_id, price):
-    response = requests.post(f"http://127.0.1:8000/api/buy_player/{player_id}/{price}")
+    response = requests.post(f"http://127.0.0.1:8000/api/buy_player/{player_id}/{price}")
     return response.json()

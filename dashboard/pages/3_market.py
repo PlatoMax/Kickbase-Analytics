@@ -83,7 +83,7 @@ styled_df = st.session_state["market"].style.apply(lambda row: highlight_rows(ro
 edited_market = st.data_editor(
     styled_df,
     hide_index=True, 
-    use_container_width=True,
+    width="stretch",
     height="content", 
     disabled=["Name", "Position", "Team", "Price", "Expires", "Predicted Points", "Points / Price", "Action", "Next Opponents"], 
     column_config={"player_id": None, "place_bid_raw": None, "team_id": None, "Action": None, "Points / Price": None,
@@ -136,8 +136,9 @@ if button_bids:
 
 
 # Budget ergänzen und sofort aktualisieren, wenn etwas unter Place Bid eingetragen wurde
-# Remove Bid ergänzen, ggf wenn man auf None setzt ausführen, da None nur wenn man rauslöscht, wird aber aktuell sofort zu "" ersetzt
+# Remove Bid ergänzen, ggf wenn man auf None setzt ausführen, da None nur wenn man rauslöscht, wird aber aktuell sofort zu "" ersetzt. Vermutlich dafür speichern der offerID notwendig -> Gebote + offerID in Json speichern
 # Überlegung: damit Gebote dauerhaft gespeichert werden, könnte man statt session_state eine json nutzen
 # profit seit letztem Preisupdate ergänzen
 # Spalte für Spielerbild und maybe Vereinlogo hinter Vereinsnamen, vermutlich kein Platz
 # neben Prozentualen Overpay auch absoluten Overpay ergänzen
+# sortierung fixen

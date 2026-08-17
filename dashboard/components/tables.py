@@ -69,9 +69,6 @@ def get_table(mode, data):
     else:
         df["Predicted Points"] = "N/A"
 
-    pos_mapping = {1: "Torwart", 2: "Abwehr", 3: "Mittelfeld", 4: "Angriff"}
-    df["player_pos"] = df["player_pos"].map(pos_mapping)
-
     df["player_price"] = df["player_price"].apply(lambda x: f"{int(x): ,}€".replace(",", "."))
 
     if mode == "market":
@@ -89,6 +86,9 @@ def get_table(mode, data):
         df = df.sort_values(by=["player_pos", "team_name", "Playername"])
         df = df[df["action"] != "sell"]
         df["expires"] = df["expires"].apply(lambda x: f"{int(x): ,}h {int((x - int(x)) * 60)}m" if pd.notnull(x) else "-")
+
+    pos_mapping = {1: "Torwart", 2: "Abwehr", 3: "Mittelfeld", 4: "Angriff"}
+    df["player_pos"] = df["player_pos"].map(pos_mapping)
 
     df["checkbox"] = False
 

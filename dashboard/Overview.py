@@ -41,4 +41,5 @@ with col2:
 
 
 # Neben Deadline restliche Zeit anzeigen in Tage, wenn weniger als 24h dann in Stunden und Minuten, wenn weniger als 1h dann in Minuten 
-# Chart mit performance von mir
+# Chart mit performance von mir in extra Tab für Statistiken
+# tracken zwischen expected points und real points pro Matchday und in einem extra Tab für Statistiken darstellen

@@ -27,23 +27,30 @@ with col1:
     st.metric(label="Current Budget", value=f"{st.session_state['budget_before']:,}€".replace(",", "."))
     st.metric(label="Expected Points", value=st.session_state["expected_points_current"])
 
-
+    button_refresh = st.button("Refresh")
     
     df_squad = df_players[df_players["Action"] != "buy"]
     df_squad.reset_index(drop=True, inplace=True)
     styled_squad = df_squad.style.apply(lambda row: highlight_rows(row, "sell"), axis=1)
 
     edited_cur_squad = st.data_editor(
-        styled_squad, height="content", use_container_width=True, hide_index=True,
+        styled_squad, height="content", width="stretch", hide_index=True,
         disabled=["Name", "Position", "Team", "Price", "Expires", "Predicted Points", "Action", "Next Opponents"], 
         column_config={"player_id": None, "team_id": None, "expires": None, "checkbox": st.column_config.CheckboxColumn(
                     "Sell",
                     help="Check if you want to sell this player",
                     default=False)})
-    
 
-# Predicted Points ergänzen in Dataframe einbauen
-# action ergänzen für hold und sell sowie rot markieren wer verkauft werden soll
+    
+    sell_button = st.button("Sell Players")
+
+    sold_players = st.session_state.get("sold_players", [])
+    errors_during_sale = st.session_state.get("errors_during_sale", [])
+
+    for player in errors_during_sale:
+        st.error(f"Error selling {player[0]}: {player[1]}.")
+    for player in sold_players:
+        st.success(f"Successfully sold {player}.")
 
 with col2:
     st.subheader("Optimized Team")
@@ -61,9 +68,48 @@ with col2:
                    disabled=["Name", "Position", "Team", "Price", "Expires", "Predicted Points", "Points / Price", "Action", "Next Opponents"],
                    column_config={"player_id": None, "team_id": None, "checkbox": None})
 
+
+
+
+    
+
+session_state_params = ["optimized_team", "budget_before", "budget_after", "expected_points_optimized", "expected_points_current"]
+
+if button_refresh:
+    for param in session_state_params:
+        if param in st.session_state:
+            del st.session_state[param] 
+    st.rerun()
+
+if sell_button:
+    df = edited_cur_squad
+    players_to_sell = df[df["checkbox"] == True]
+
+    sold_players = []
+    errors_during_sale = []
+    for index, row in players_to_sell.iterrows():
+        player_id = row["player_id"]
+        player_name = row["Name"]
+        response = sell_player(player_id)
+        
+        if response["status"] == "success":
+            sold_players.append(player_name)
+        else:
+            errors_during_sale.append((player_name, response.get("detail", "Unknown error")))
+
+    st.session_state["sold_players"] = sold_players
+    st.session_state["errors_during_sale"] = errors_during_sale
+    
+    for param in session_state_params:
+        if param in st.session_state:
+            del st.session_state[param] 
+    st.rerun()    
+
+
 # Auf Spieler klicken und danach öffnet sich Pop-Up mit Spielerstats und wieso diese Punkte vorhergesagt wurden
-# hier und/oder in Tab 3_market Knopf zum verkaufen von Spielern analog wie buy in Tab 3
 # Knopf um automatisch alle Spieler in die Startelf zu packen (vorraussetzung nur 11 Spieler im kader, ggf. Lösung wenn man mehr als 11 hat)
 # refresh button 
 # wenn man mehr als 11 Spieler im Kader hat, sind die expected Points höher als bei optimized_squad, maybe separat berechnen wenn man optimized nur auf dem Kader anwendet und die Spieler mit "hold" 
 # Größe aktuellem Kader über dem Dataframe 
+# Option verkauf von Spieler zu blocken also das Spieler als unverkäuflich betrachtet werden, sofern es nicht rausgenommen wird
+# Sicherheitsmechanismus beim Verkauf von Spielern, welche nicht als sell verkauft sind
