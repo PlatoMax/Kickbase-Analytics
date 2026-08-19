@@ -70,6 +70,7 @@ with col2:
     button_refresh = st.button("Refresh Market")
 
 if button_refresh:
+    fetch_market.clear()
     if "market" in st.session_state:
         del st.session_state["market"]
     st.rerun()
@@ -136,9 +137,25 @@ if button_bids:
 
 
 # Budget ergänzen und sofort aktualisieren, wenn etwas unter Place Bid eingetragen wurde
+# 
 # Remove Bid ergänzen, ggf wenn man auf None setzt ausführen, da None nur wenn man rauslöscht, wird aber aktuell sofort zu "" ersetzt. Vermutlich dafür speichern der offerID notwendig -> Gebote + offerID in Json speichern
 # Überlegung: damit Gebote dauerhaft gespeichert werden, könnte man statt session_state eine json nutzen
-# profit seit letztem Preisupdate ergänzen
+# 
+# Profit seit letztem Preisupdate ergänzen
+# 
 # Spalte für Spielerbild und maybe Vereinlogo hinter Vereinsnamen, vermutlich kein Platz
-# neben Prozentualen Overpay auch absoluten Overpay ergänzen
-# sortierung fixen
+# 
+# Neben Prozentualen Overpay auch absoluten Overpay ergänzen
+#
+# Funktion einfügen, dass man Spieler aus "buy" austragen kann und danach automatisch eine neue Optimierung berechnet wird (maybe erst nach Knopfdruck neu optimieren). 
+#   Möglicherweise einfach aus Liste mit Spielern die an Optimizer übergeben wird entfernen und danach wieder hinzufügen mit "hold", sollte dann analog für Tab 2 gehen
+#   User warnen das er nun selbständig handel und irgendwo einbauen es rückgängig zu machen -> vermutlich dafür langfristig in Json speichern
+#
+# Defaul Overpay maybe runtersetzen, außerdem im session_state speichern
+#
+# Aktuell habe ich bereits Kane im Kader und der Optimizer will 3 weitere Bayern-Spieler kaufen (Limit erreicht)
+# Limit sollte am besten auch nicht hardcodiert sein, sondern aus der API ausgelesen werden.
+#
+# Mehr Hinweise wenn ein Gebot nicht erfolgreich war, woran es liegen könnte
+#
+# basierend auf overpay das optimale Team berechnen

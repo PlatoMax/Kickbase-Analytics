@@ -133,11 +133,12 @@ def sell_player(player_id):
 @app.get("/api/market")
 def get_transfer_market():
     league_id, token, cookies = get_login_info()
-    market = get_players_on_market(league_id, token, cookies)
-    predictions = get_all_predictions(market)
 
+    market = get_players_on_market(league_id, token, cookies)
     squad = get_squad(league_id, token, cookies)
     budget = get_budget(league_id, token, cookies)
+
+    predictions = get_all_predictions(market + squad)
     optimized = run_optimizer(market, squad, budget, predictions)
     buys_market = [str(player["player_id"]) for player in optimized.get("buy", [])]
 
