@@ -190,11 +190,9 @@ def buy_player(player_id, price):
 
 
 # todo: 
-# mehr try except Blöcke einbauen für mögliche Fehler
 # mehr Kommentare für besseres Verständnis einfügen
 # Backups und Schutzmechanismen für die Datenbanken anlegen. Historische Daten können nicht zurückgeholt werden
 # prüfen ob irgendwo nach TeamID gesucht wird in team_mapping ohne hinzufügen von neuen TeamIDs
-# Datei zum starten von allem also Frontend, Backend sowie überprüfung der Datenbankständen usw.
 # Lösung suchen für Fall Datenbank muss befüllt werden aber man will schon Dashboard nutzen mit verfügbaren Features (auch wenn nicht vollständig)
 # ReadME anpassen
 # Bei API Requests prüfen ob man das beschleunigen kann, Anzahl requests reduzueren da oft in verschiedenen Funktionen die gleichen Daten abgefragt werden 

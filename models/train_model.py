@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     RUN_GRID_SEARCH = False # für grid_search einfach auf true ändern, aktuell werden jedoch bereits diese Parameter genutzt
     TRAIN_GOALKEEPER = True
-    SAFE_MODELL = False
+    SAFE_MODELL = False # True = speichert das Modell, False = speichert das Modell nicht
 
     n_estimators = 500
     learning_rate = 0.01
@@ -68,7 +68,7 @@ if __name__ == "__main__":
                     max_depth=max_depth,
                     subsample=subsample,
                     random_state=42,
-                    n_jobs=1
+                    n_jobs=-1 # bei Fehlermeldung testen ob auf 1 setzen das Problem löst
                 )
                 
                 scores = cross_val_score(model, x, y, cv=TimeSeriesSplit(n_splits=5), scoring="neg_mean_absolute_error")
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                 'subsample': [0.8, 1.0]
             }
 
-            xgb = XGBRegressor(random_state=42)
+            xgb = XGBRegressor(random_state=4, n_jobs=-1)
             grid_search = GridSearchCV(
                 estimator= xgb,
                 param_grid=param_grid,

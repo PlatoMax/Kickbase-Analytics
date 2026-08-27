@@ -44,6 +44,10 @@ def sell_player(player_id):
 @st.cache_data(ttl=600)
 def fetch_market():
     response = requests.get("http://127.0.0.1:8000/api/market")
+    if response.status_code != 200:
+        print(f"Fehler! Statuscode: {response.status_code}")
+        print(f"Antwort des Servers: {response.text}")
+        return None
     return response.json()
 
 def place_bid(player_id, price):
