@@ -25,6 +25,9 @@ TEAMS_MAPPING = {
     "St. Pauli": "FC St. Pauli", 
     "Wolfsburg": "VfL Wolfsburg",
     "Heidenheim": "1. FC Heidenheim",
+    "Elversberg": "SV 07 Elversberg",
+    "Paderborn": "SC Paderborn 07",
+    "Schalke": "FC Schalke 04"
 }
 
 ALIAS_MAP = {

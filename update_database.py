@@ -126,8 +126,8 @@ last_start_year = get_season(last=True)
 current_season = f"{cur_start_year}/{cur_start_year + 1}"
 last_season = f"{last_start_year}/{last_start_year + 1}"
 
-# total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
-total_entries_databank += extract_and_save_teamstats(current_season)
+total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
+# total_entries_databank += extract_and_save_teamstats(current_season)
 
 
 # Players
@@ -155,11 +155,12 @@ latest_matchday_db = latest_matchday_db[0] if latest_matchday_db[0] is not None 
 conn.close()
 
 random_player_id = players[0][1]
-latest_matchday_kickbase = get_current_kickbase_matchday(token, cookies, random_player_id, current_season) # hier nochmal genauer schauen ob das zukunftssicher ist
+# latest_matchday_kickbase = get_current_kickbase_matchday(token, cookies, random_player_id, current_season) # hier nochmal genauer schauen ob das zukunftssicher ist
 
-print(f"latest db: {latest_matchday_db}, latest kb: {latest_matchday_kickbase}")
+# print(f"latest db: {latest_matchday_db}, latest kb: {latest_matchday_kickbase}")
 max_retries = 5
-if latest_matchday_db < int(latest_matchday_kickbase):
+# if latest_matchday_db < int(latest_matchday_kickbase):
+if max_retries > 0:
     for i, player in enumerate(players): 
 
         if i % 50 == 0 and i != 0:
@@ -169,14 +170,14 @@ if latest_matchday_db < int(latest_matchday_kickbase):
 
         for attempt in range(max_retries):
             try:
-                entries_current = extract_and_save_playerstats(player, current_season)
-                time.sleep(random.uniform(1, 2))
-                # entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
+                # entries_current = extract_and_save_playerstats(player, current_season)
+                # time.sleep(random.uniform(1, 2))
+                entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
                 
-                total_entries_databank += entries_current # + entires_last sofern entires_last nicht auskommentiert wurde
-                # total_entries_databank += entries_last # + entires_last sofern entires_last nicht auskommentiert wurde
+                # total_entries_databank += entries_current # + entires_last sofern entires_last nicht auskommentiert wurde
+                total_entries_databank += entries_last # + entires_last sofern entires_last nicht auskommentiert wurde
 
-                print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
+                print(f"{player[2]} erfolgreich verarbeitet! (+{entries_} Einträge)") 
                 break # break gilt für attempt Schleife
             except Exception as e: 
                 print(f"Warnung bei {player[2]} (Versuch {attempt + 1}/{max_retries}): {e}")    
@@ -197,7 +198,7 @@ end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60
 print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minuten:.2f} Minuten gespeichert.")
 
-
+# Wenn Team nicht in Liga, dann auch nicht scrapen. Aktuell wird alles Null wenn man letzte Season für Nürnbergspieler scrapt
 # Optionen um direkt ganze Saison zu löschen und neu zu scrapen
 # prüfen ob gescraped werden muss
 # selber entscheiden ob man nur die aktuelle Saison oder auch die letzte Saison scrapen will

@@ -44,3 +44,6 @@ with col2:
 # Chart mit performance von mir in extra Tab für Statistiken
 # tracken zwischen expected points und real points pro Matchday und in einem extra Tab für Statistiken darstellen
 # Knopf für update_database, anzeige aktualität der Datenbank
+# help a friend feature
+# Option hier die Liga zu wechseln
+# predicted aufstellung in LigaInsider als Feature integrieren? Schwer fürs Training da man nicht an vergangene Spieltage kommt

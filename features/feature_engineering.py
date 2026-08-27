@@ -68,6 +68,7 @@ def minutes_avg_and_trend(df):
     .rolling(window=5)
     .mean()
 )
+    df["has_played"] = np.where(df["minutes_avg_last_3"].fillna(0) > 0, 1, 0)
     df = df.drop(columns=["minutes_filled"])
     return df
 
