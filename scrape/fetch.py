@@ -145,7 +145,7 @@ def get_kickbase_deadline(season, skip_started_matchday=True):
     md_already_started = any(m[1] == upcoming_md and m[0] < now for m in all_matches)
 
     if skip_started_matchday and md_already_started:
-        upcoming_md += 1
+        target_md = upcoming_md + 1
     else:
         target_md = upcoming_md
 

@@ -150,6 +150,7 @@ if button_bids:
 # Funktion einfügen, dass man Spieler aus "buy" austragen kann und danach automatisch eine neue Optimierung berechnet wird (maybe erst nach Knopfdruck neu optimieren). 
 #   Möglicherweise einfach aus Liste mit Spielern die an Optimizer übergeben wird entfernen und danach wieder hinzufügen mit "hold", sollte dann analog für Tab 2 gehen
 #   User warnen das er nun selbständig handel und irgendwo einbauen es rückgängig zu machen -> vermutlich dafür langfristig in Json speichern
+#   weitere Option wäre dem Optimizer 0 Punkte als Prognose zu übergeben, in sell (Tab 2) würde dies jedoch nicht gehen
 #
 # Defaul Overpay maybe runtersetzen, außerdem im session_state speichern
 #
@@ -159,3 +160,7 @@ if button_bids:
 # Mehr Hinweise wenn ein Gebot nicht erfolgreich war, woran es liegen könnte
 #
 # basierend auf overpay das optimale Team berechnen
+#
+# optimizer sollte Deadline kennen -> nur Spieler vor der Deadline übergeben
+#
+# avg. Puntke anzeigen
