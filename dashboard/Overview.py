@@ -47,3 +47,9 @@ with col2:
 # help a friend feature
 # Option hier die Liga zu wechseln
 # predicted aufstellung in LigaInsider als Feature integrieren? Schwer fürs Training da man nicht an vergangene Spieltage kommt
+#
+# Page mit Liga Aktivitäten
+#
+# Page zu den Managern (hier auch aktuelles Geld, wie viel kann noch in minus gegangen werden anzeigen, siehe Github Kickbase-Trader)
+#
+# Hinter Punkten im Leaderboard (+ Punkte letzter Matchday)

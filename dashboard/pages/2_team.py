@@ -5,8 +5,15 @@ from components.tables import *
 
 st.set_page_config(page_title="My Team", layout="wide")
 
+session_state_params = ["optimized_team", "budget_before", "budget_after", "expected_points_optimized", "expected_points_current"]
+
+def reset_optimization():
+    for param in session_state_params:
+        st.session_state.pop(param, None)
+
 if "optimized_team" not in st.session_state:
-    optimized_team_data = fetch_optimized_team()
+    only_own_players = st.session_state.get("only_own_players", False)
+    optimized_team_data = fetch_optimized_team(only_own_players)
     optimized_team = optimized_team_data["optimal_team"]
     budget_before = optimized_team_data["budget_before"]
     budget_after = optimized_team_data["budget_after"]
@@ -28,6 +35,13 @@ with col1:
     st.metric(label="Expected Points", value=st.session_state["expected_points_current"])
 
     button_refresh = st.button("Refresh")
+
+    st.toggle(
+    "Nur eigene Spieler verwenden",
+    key="only_own_players",
+    on_change=reset_optimization,
+    help="Wenn aktiv, werden keine Spieler vom Transfermarkt berücksichtigt.",
+)
     
     df_squad = df_players[df_players["Action"] != "buy"]
     df_squad.reset_index(drop=True, inplace=True)
@@ -79,7 +93,6 @@ with col2:
 
     
 
-session_state_params = ["optimized_team", "budget_before", "budget_after", "expected_points_optimized", "expected_points_current"]
 
 if button_refresh:
     for param in session_state_params:
@@ -114,7 +127,8 @@ if sell_button:
 
 # Auf Spieler klicken und danach öffnet sich Pop-Up mit Spielerstats und wieso diese Punkte vorhergesagt wurden
 # Knopf um automatisch alle Spieler in die Startelf zu packen (vorraussetzung nur 11 Spieler im kader, ggf. Lösung wenn man mehr als 11 hat, prüfen ob überhaupt möglich)
-# wenn man mehr als 11 Spieler im Kader hat, sind die expected Points höher als bei optimized_squad, maybe separat berechnen wenn man optimized nur auf dem Kader anwendet und die Spieler mit "hold" 
+# wenn man mehr als 11 Spieler im Kader hat, sind die expected Points höher als bei optimized_squad, maybe separat berechnen wenn man optimized nur auf dem Kader anwendet und die Spieler mit "hold", ggf. nach API schauen für aufgestellt Spieler
 # Größe aktuellem Kader über dem Dataframe anzeigen
 # Option verkauf von Spieler zu blocken also das Spieler als unverkäuflich betrachtet werden, sofern es nicht rausgenommen wird und immer in optimized_squad bleibt
 # Sicherheitsmechanismus beim Verkauf von Spielern, welche nicht als sell verkauft sind
+# own players offered on the market are seen as 2 Players 

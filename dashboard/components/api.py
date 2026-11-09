@@ -29,8 +29,9 @@ def fetch_matchups():
 # Tab 2: Squad
 #----------------------------------------------------------------------------------------------
 
-def fetch_optimized_team():
-    response = requests.get("http://127.0.0.1:8000/api/optimized_team")
+
+def fetch_optimized_team(only_own_players=False):
+    response = requests.get("http://127.0.0.1:8000/api/optimized_team", params={"only_own_players": only_own_players})
     return response.json()
 
 def sell_player(player_id):

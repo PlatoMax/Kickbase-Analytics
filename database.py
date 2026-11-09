@@ -159,6 +159,7 @@ def create_tables():
             points INTEGER,
             minutes INTEGER,
             points_per_minute REAL,
+            market_value REAL,
             points_per_value REAL,
             team_name TEXT,
             opponent_name TEXT,
@@ -254,7 +255,7 @@ def save_player_stats_field(player_id, stats_list):
     sql = """
         INSERT INTO player_stats_field (
             player_id, season, matchday, date, points, minutes,
-            points_per_minute, points_per_value, team_name, opponent_name,
+            points_per_minute, market_value, points_per_value, team_name, opponent_name,
             goals_own_team, goals_enemy_team, match_result, goals,
             assists, yellow_cards, yellow_red_cards, red_cards,
             ligaInsider_points, grade, status,
@@ -270,7 +271,7 @@ def save_player_stats_field(player_id, stats_list):
             fehler_vor_gegentor, geblockte_baelle
         ) VALUES (
             :player_id, :season, :matchday, :date, :points, :minutes,
-            :points_per_minute, :points_per_value, :team_name, :opponent_name,
+            :points_per_minute, :market_value, :points_per_value, :team_name, :opponent_name,
             :goals_own_team, :goals_enemy_team, :match_result, :goals,
             :assists, :yellow_cards, :yellow_red_cards, :red_cards,
             :ligaInsider_points, :grade, :status,
@@ -286,10 +287,13 @@ def save_player_stats_field(player_id, stats_list):
             :fehler_vor_gegentor, :geblockte_baelle
         )
         ON CONFLICT(player_id, season, matchday) DO UPDATE SET
+            team_name = excluded.team_name,
+            opponent_name = excluded.opponent_name,
             points = excluded.points,
             minutes = excluded.minutes,
             points_per_minute = excluded.points_per_minute,
-            points_per_value = excluded.points_per_value,
+            market_value = COALESCE(NULLIF(excluded.market_value, 0), player_stats_field.market_value),
+            points_per_value = COALESCE(NULLIF(excluded.points_per_value, 0), player_stats_field.points_per_value),
             goals_own_team = excluded.goals_own_team,
             goals_enemy_team = excluded.goals_enemy_team,
             match_result = excluded.match_result,
@@ -359,7 +363,7 @@ def save_player_stats_gk(player_id, stats_list):
     sql = """
         INSERT INTO player_stats_gk (
             player_id, season, matchday, date, points, minutes,
-            points_per_minute, points_per_value, team_name, opponent_name,
+            points_per_minute, market_value, points_per_value, team_name, opponent_name,
             goals_own_team, goals_enemy_team, match_result, goals,
             assists, yellow_cards, yellow_red_cards, red_cards,
             ligaInsider_points, grade, status,
@@ -371,7 +375,7 @@ def save_player_stats_gk(player_id, stats_list):
             fehler_vor_gegentor
         ) VALUES (
             :player_id, :season, :matchday, :date, :points, :minutes,
-            :points_per_minute, :points_per_value, :team_name, :opponent_name,
+            :points_per_minute, :market_value, :points_per_value, :team_name, :opponent_name,
             :goals_own_team, :goals_enemy_team, :match_result, :goals,
             :assists, :yellow_cards, :yellow_red_cards, :red_cards,
             :ligaInsider_points, :grade, :status,
@@ -383,10 +387,13 @@ def save_player_stats_gk(player_id, stats_list):
             :fehler_vor_gegentor
         )
         ON CONFLICT(player_id, season, matchday) DO UPDATE SET
+            team_name = excluded.team_name,
+            opponent_name = excluded.opponent_name,
             points = excluded.points,
             minutes = excluded.minutes,
             points_per_minute = excluded.points_per_minute,
-            points_per_value = excluded.points_per_value,
+            market_value = COALESCE(NULLIF(excluded.market_value, 0), player_stats_gk.market_value),
+            points_per_value = COALESCE(NULLIF(excluded.points_per_value, 0), player_stats_gk.points_per_value),
             goals_own_team = excluded.goals_own_team,
             goals_enemy_team = excluded.goals_enemy_team,
             match_result = excluded.match_result,
@@ -553,5 +560,39 @@ def clear_teams_stats_one_season(season): # season hat to be the kickbase Season
     
     finally: 
         conn.close()
-    
 
+import sqlite3
+
+def get_last_team_form(team_name, season): # Kickbase Season, e.g. "2025/2026" 
+    last_season = f"{int(season.split('/')[0]) - 1}/{int(season.split('/')[0])}"
+    conn = get_connection()
+    conn.row_factory = sqlite3.Row 
+    
+    cursor = conn.cursor()
+    try:
+        cursor.execute(""" 
+        SELECT 
+            form_match_1_points, form_match_1_goals, form_match_1_goals_conceded, form_match_1_Heimvorteil,
+            form_match_2_points, form_match_2_goals, form_match_2_goals_conceded, form_match_2_Heimvorteil,
+            form_match_3_points, form_match_3_goals, form_match_3_goals_conceded, form_match_3_Heimvorteil,
+            form_match_4_points, form_match_4_goals, form_match_4_goals_conceded, form_match_4_Heimvorteil,
+            form_match_5_points, form_match_5_goals, form_match_5_goals_conceded, form_match_5_Heimvorteil
+        FROM team_stats 
+        WHERE team_name = ? AND season = ? AND matchday = ? 
+        """, (team_name, last_season, 34))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result:
+            # Wandelt das Row-Objekt in ein echtes Dictionary um
+            return dict(result) 
+            
+    except sqlite3.Error as e:
+        print(f"Error beim Abrufen der letzten Teamform: {e}")
+        return None
+
+        
+
+      
+                  

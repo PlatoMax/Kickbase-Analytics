@@ -5,6 +5,7 @@ import sqlite3
 from bs4 import BeautifulSoup 
 import json
 import os
+from database import * 
 
 
 # Ligainsider: 
@@ -26,7 +27,7 @@ def safe_float(element):
 
 
 def get_player_status_LI(row):
-    status_div = row.find('div', class_='data_column_right text-center pull-left')
+    status_div = row.find('div', class_='data_column_right')
     
     if not status_div:
         return "unbekannt"
@@ -60,13 +61,15 @@ def get_player_status_LI(row):
         text = span.get_text().strip()
         if text == "B":
             return "bank"
+        elif text == "":
+            return "eingewechselt"
         else:
             return "startelf"  
     
     return "unbekannt"
 
 def get_gameday_number_LI(row):
-    gameday_div = row.find('div', class_='data_column_item pull-left')
+    gameday_div = row.find('div', class_='data_column_item')
     if gameday_div:
         gameday = gameday_div.find('strong')
         if gameday:
@@ -77,11 +80,11 @@ def get_gameday_number_LI(row):
 def kickbase_season_to_ligainsider(season_kickbase): # Beispiel: 2025/2026 -> 2025-2026
     return season_kickbase.replace("/", "-") 
 
-def scrape_player_stats_LI(name, position, season_kickbase, link): 
+def scrape_player_stats_LI(name, position, season_kickbase, link, session): 
     season_ligaInsider = kickbase_season_to_ligainsider(season_kickbase)
 
     URL = f'{link}bundesliga_daten/saison-{season_ligaInsider}/'
-    responose = requests.get(URL)
+    responose = session.get(URL, timeout=10)
     if(responose.status_code != 200):
         print(f"Fehler beim Abrufen der Seite für {name} in Saison {season_ligaInsider}")
         return []
@@ -90,12 +93,14 @@ def scrape_player_stats_LI(name, position, season_kickbase, link):
 
     if position == 1:  # 1 = Torwart 
         columns = [
+            "Spieltagsinfo",
             "abgewehrte_schuesse", "paraden", "weisse_weste",
             "strafraum_beherrschung", "abgewehrte_elfmeter",
             "grosschancen_pariert", "fehler_vor_gegentor"
         ]
     else:  # Feldspieler 
         columns = [
+            "Spieltagsinfo",
             "erfolgreiche_paesse", "gewonnene_zweikaempfe",
             "gewonnene_luftkaempfe", "erfolgreiche_tacklings",
             "begangene_fouls", "geklaerte_baelle",
@@ -107,7 +112,12 @@ def scrape_player_stats_LI(name, position, season_kickbase, link):
         ]
     
     # Jeder Spieltag
-    rows = soup.find_all('div', class_='data_column_row')
+    data_box = soup.find('div', class_='table_column_box')
+    if not data_box:
+        print(f"Keine Datenbox für {name} in Saison {season_ligaInsider} gefunden.")
+        return []
+
+    rows = data_box.find_all('div', class_='data_column_row')
     stats = []
     for row in rows:
         status = get_player_status_LI(row)
@@ -118,10 +128,12 @@ def scrape_player_stats_LI(name, position, season_kickbase, link):
         }
         
         
-        values = row.find_all('div', class_='data_column text-center')
+        values = row.find_all('div', class_='data_column')
         for i, val in enumerate(values):
             if i < len(columns): 
                 col_name = columns[i]
+                if col_name == "Spieltagsinfo":
+                    continue  # überspringen, da wir Spieltag und Status bereits haben
                 small = val.find('small')
                 span = val.find('span')
                 
@@ -140,7 +152,7 @@ def scrape_player_stats_LI(name, position, season_kickbase, link):
                 
                 elif span: # <span>-Wert (z.B. "2" oder "69%")
                     text = span.get_text().replace("%", "").strip()
-                    if text != "-" and text.isdigit():
+                    if text.isdigit():
                         stat[col_name] = int(text)
                     else:
                         stat[col_name] = 0
@@ -150,11 +162,11 @@ def scrape_player_stats_LI(name, position, season_kickbase, link):
         stats.append(stat)    
     return stats  
 
-def get_player_goals_and_grades(name, season_kickbase, link):
+def get_player_goals_and_grades(name, season_kickbase, link, session):
     season_ligaInsider = kickbase_season_to_ligainsider(season_kickbase)
     
     URL = f'{link}noten_und_einsatzhistorie/saison-{season_ligaInsider}'
-    response = requests.get(URL)
+    response = session.get(URL, timeout=10)
     if response.status_code != 200:
         print(f"Fehler beim Abrufen der Seite für {name} in Saison {season_ligaInsider}")
         return []
@@ -172,13 +184,11 @@ def get_player_goals_and_grades(name, season_kickbase, link):
             if not (spieltag_text and spieltag_text.replace('.', '').strip().isdigit()):
                 continue
 
-            goals = row.find('div', class_='table_col5 pull-left')
-            assists = row.find('div', class_='table_col6 pull-left')
-            yellow_cards = row.find('div', class_='table_col7 pull-left')
-            yellow_red_cards = row.find('div', class_='table_col8 pull-left')
-            red_cards = row.find('div', class_='table_col9 pull-left')
-            ligaInsider_points = row.find('div', class_='table_col10 pull-left')
-            grade = row.find('div', class_='table_col11 pull-left')
+            yellow_cards = row.find('div', class_='table_col7')
+            yellow_red_cards = row.find('div', class_='table_col8')
+            red_cards = row.find('div', class_='table_col9')
+            ligaInsider_points = row.find('div', class_='table_col10')
+            grade = row.find('div', class_='table_col11')
             
 
             # Prüfen ob Note vorhanden
@@ -194,8 +204,6 @@ def get_player_goals_and_grades(name, season_kickbase, link):
                 # Bank-Fall: Spieler hat keine Note -> alle Werte 0
                 data.append({
                     "spieltag": int(spieltag_text.replace('.', '').strip()),
-                    "goals": 0,
-                    "assists": 0,
                     "yellow_cards": 0,
                     "yellow_red_cards": 0,
                     "red_cards": 0,
@@ -206,8 +214,6 @@ def get_player_goals_and_grades(name, season_kickbase, link):
             else:
                 data.append({
                     "spieltag": int(spieltag_text.replace('.', '').strip()),
-                    "goals": safe_int(goals),
-                    "assists": safe_int(assists),
                     "yellow_cards": safe_int(yellow_cards),
                     "yellow_red_cards": safe_int(yellow_red_cards),
                     "red_cards": safe_int(red_cards),
@@ -244,9 +250,9 @@ def add_if_team_mapping_dont_exists(teamid, teamname):
 
 
 
-def get_league_id(token, cookies, l_name=LEAGUE_NAME):    
+def get_league_id(session, l_name=LEAGUE_NAME):    
     url = f"{API_URL}/leagues/selection"
-    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
+    response = session.get(url, timeout=10)
     league_id = None
     try:
         data = response.json()
@@ -261,9 +267,9 @@ def get_league_id(token, cookies, l_name=LEAGUE_NAME):
     return league_id
          
 
-def get_players_on_market(league_id, token, cookies):
+def get_players_on_market(league_id, session):
     url = f"{API_URL}/leagues/{league_id}/market"
-    response = requests.get(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
+    response = session.get(url, timeout=10)
 
     try:
         data = response.json()
@@ -303,11 +309,10 @@ def get_min_season_kickbase(): #letzte zu betrachtende Saison im Kickbase-Format
     
     return f"{season_start-1}/{str(season_start)}"
 
-def get_player_info(token, cookies, player_id):
-    response = requests.get(
+def get_player_info(player_id, session):
+    response = session.get(
         f"{API_URL}/competitions/1/players/{player_id}", #/1 für 1. Bundesliga
-        headers={"tkn": token, "Accept": "application/json"},
-        cookies=cookies
+        timeout=10
     )
     
     if response.status_code != 200:
@@ -328,11 +333,10 @@ def get_player_info(token, cookies, player_id):
     }
     
 
-def get_player_market_values(token, cookies, player_id):
-    response = requests.get(
+def get_player_market_values(player_id, session):
+    response = session.get(
         f"{API_URL}/competitions/1/players/{player_id}/marketvalue/365",
-        headers={"tkn": token, "Accept": "application/json"},
-        cookies=cookies
+        timeout=10
     )
     
     if response.status_code != 200:
@@ -361,17 +365,16 @@ def get_market_value_at_date(market_values, target_date):
             break 
     return result
         
-def get_player_performance_kb(token, cookies, player_id, target_season):
-    response = requests.get(
+def get_player_performance_kb(player_id, target_season, session):
+    response = session.get(
         f"{API_URL}/competitions/1/players/{player_id}/performance",
-        headers={"tkn": token, "Accept": "application/json"},
-        cookies=cookies
+        timeout=10
     )
     
     if response.status_code != 200:
         print(f"Performance-Abfrage für Spieler {player_id} fehlgeschlagen!")
         return []
-    market_values = get_player_market_values(token, cookies, player_id)
+    market_values = get_player_market_values(player_id, session)
     data = response.json()
     # print(data, "\n\n\n") # Debug-Ausgabe, um die Struktur der Daten zu überprüfen
     
@@ -382,11 +385,11 @@ def get_player_performance_kb(token, cookies, player_id, target_season):
         season_str = season["ti"]
         if season_str != target_season or season["n"] != "Bundesliga": 
             continue
-            
+
         seen_matchdays = set() 
 
         for game in season["ph"]:
-            if game.get("mp") is None: 
+            if game.get("mp") is None: # mp = Spielzeit aber nur vorhanden wenn Spiel bereits war. Wenn nicht gespielt ist es einfach 0, wenn Spiel noch ausstehend ist, ist es None
                 break 
             
             historical_team_id = str(game.get("pt"))
@@ -398,10 +401,14 @@ def get_player_performance_kb(token, cookies, player_id, target_season):
             seen_matchdays.add(matchday) # Spieltag als "gesehen" markieren
 
             date = game.get("md")
-            point = game.get("p")
+            point = game.get("p", 0)
+            events = game.get("k", [])
+            goals = events.count(1)  # 1 = Tor
+            assists = events.count(3)  # 3 = Assist
+
             minutes_str = game.get("mp") 
             minutes = int(minutes_str.replace("'", "")) if minutes_str else 0
-            points_per_minute = point / minutes if minutes > 0 else None
+            points_per_minute = point / minutes if minutes > 0 else 0
 
             current_market_value = get_market_value_at_date(market_values, date)
 
@@ -445,6 +452,8 @@ def get_player_performance_kb(token, cookies, player_id, target_season):
                 "matchday": matchday,
                 "date": date,
                 "points": point,
+                "goals": goals,
+                "assists": assists,
                 "minutes": minutes,
                 "points_per_minute": points_per_minute,
                 "market_value": current_market_value,
@@ -475,6 +484,8 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
             "matchday": current_matchday,
             "date": kb_match.get("date"),
             "points": kb_match.get("points"),
+            "goals": kb_match.get("goals", 0),
+            "assists": kb_match.get("assists", 0),
             "minutes": kb_match.get("minutes"),
             "points_per_minute": kb_match.get("points_per_minute"),
             "market_value": kb_match.get("market_value"),
@@ -485,8 +496,6 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
             "goals_enemy_team": kb_match.get("goals_enemy_team"),
             "match_result": kb_match.get("match_result"),
             
-            "goals": matching_gg_match.get("goals", 0),
-            "assists": matching_gg_match.get("assists", 0),
             "yellow_cards": matching_gg_match.get("yellow_cards", 0),
             "yellow_red_cards": matching_gg_match.get("yellow_red_cards", 0),
             "red_cards": matching_gg_match.get("red_cards", 0),
@@ -497,18 +506,24 @@ def merge_all_stats(stats_kickbase, stats_ligainsider, goals_and_grades, positio
         if position == 1: # Torwart
             base_stat.update({
                 "status": matching_li_match.get("status", "unbekannt"),
+                
                 "abgewehrte_schuesse": matching_li_match.get("abgewehrte_schuesse", 0),
-                "schuesse_gesamt": matching_li_match.get("abgewehrte_schuesse_gesamt", 0),
+                "abgewehrte_schuesse_gesamt": matching_li_match.get("abgewehrte_schuesse_gesamt", 0), # Hier war dein alter Fehler ("schuesse_gesamt")
+                
                 "paraden": matching_li_match.get("paraden", 0),
                 "weisse_weste": matching_li_match.get("weisse_weste", 0),
+                
                 "strafraum_beherrschung": matching_li_match.get("strafraum_beherrschung", 0),
                 "strafraum_beherrschung_gesamt": matching_li_match.get("strafraum_beherrschung_gesamt", 0),
+                
                 "abgewehrte_elfmeter": matching_li_match.get("abgewehrte_elfmeter", 0),
-                "elfmeter_gesamt": matching_li_match.get("abgewehrte_elfmeter_gesamt", 0),
+                "elfmeter_gesamt": matching_li_match.get("abgewehrte_elfmeter_gesamt", 0), # Links DB, Rechts Scraper (korrekt!)
+                
                 "grosschancen_pariert": matching_li_match.get("grosschancen_pariert", 0),
-                "grosschancen_gesamt": matching_li_match.get("grosschancen_pariert_gesamt", 0),
+                "grosschancen_gesamt": matching_li_match.get("grosschancen_pariert_gesamt", 0), # Links DB, Rechts Scraper (korrekt!)
+                
                 "fehler_vor_gegentor": matching_li_match.get("fehler_vor_gegentor", 0)
-            })  
+            }) 
         else: # Feldspieler
             base_stat.update({
                 "status": matching_li_match.get("status", "unbekannt"),
@@ -747,6 +762,19 @@ def create_table(team_tracker):
     )
     return table
 
+def initialize_team_form(teamname, season):
+    current_form = get_last_team_form(teamname, season)
+    team_form = []
+    if current_form:
+        for i in range(5, 0, -1):
+            team_form.append({
+                "points": current_form[f"form_match_{i}_points"],
+                "goals": current_form[f"form_match_{i}_goals"],
+                "goals_conceded": current_form[f"form_match_{i}_goals_conceded"],
+                "Heimvorteil": current_form[f"form_match_{i}_Heimvorteil"]
+            })
+    return team_form
+
 def get_current_form(stats_matchdays, matchday_number): 
     teams_form = {}
     abbruch = False
@@ -757,14 +785,15 @@ def get_current_form(stats_matchdays, matchday_number):
             if match["matchday"] > matchday_number:
                 abbruch = True
                 break
-            teamname1 = match.get("team1_name")
+            teamname1 = match.get("team1_name") 
             teamname2 = match.get("team2_name")
 
             if not teamname1 in teams_form: # stellt sicher, dass das Team auch im Dict ist. 
-                teams_form[teamname1] = []
+                teams_form[teamname1] = initialize_team_form(teamname1, season=match.get("season"))
+                
 
             if not teamname2 in teams_form:
-                teams_form[teamname2] = []
+                teams_form[teamname2] = initialize_team_form(teamname2, season=match.get("season"))             
             
             teams_form[teamname1].append({
                 "points": match["points_team1"],

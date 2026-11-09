@@ -35,20 +35,16 @@ def get_df_gk():
 
 # Punkte avg und trend letzten 3 und 5 Spiele
 def points_avg_and_trend(df):
-    df["points_filled"] = df['points'].fillna(0)
+    df["points_filled"] = df['points']
 
     df["points_avg_last_3"] = (
-    df.groupby(["player_id", "season"])["points_filled"] 
-    .shift(1)
-    .rolling(window=3)
-    .mean()
-)
+        df.groupby(["player_id"])["points_filled"]
+        .transform(lambda x: x.rolling(3, min_periods=1).mean())
+    )
     df["points_avg_last_5"] = (
-    df.groupby(["player_id", "season"])["points_filled"]
-    .shift(1)
-    .rolling(window=5)
-    .mean()
-)
+        df.groupby(["player_id"])["points_filled"]
+        .transform(lambda x: x.rolling(window=5, min_periods=1).mean())
+    )
     df["points_trend"] = df["points_avg_last_3"] - df["points_avg_last_5"]
     df = df.drop(columns=["points_filled"])
     return df
@@ -57,16 +53,10 @@ def points_avg_and_trend(df):
 def minutes_avg_and_trend(df):
     df["minutes_filled"] = df["minutes"].fillna(0)
     df["minutes_avg_last_3"] = (
-    df.groupby(["player_id", "season"])["minutes_filled"]
-    .shift(1)
-    .rolling(window=3)
-    .mean()
+    df.groupby(["player_id"])["minutes_filled"].transform(lambda x: x.rolling(3, min_periods=1).mean())  
 )
     df["minutes_avg_last_5"] = (
-    df.groupby(["player_id", "season"])["minutes_filled"]
-    .shift(1)
-    .rolling(window=5)
-    .mean()
+    df.groupby(["player_id"])["minutes_filled"].transform(lambda x: x.rolling(window=5, min_periods=1).mean())
 )
     df["has_played"] = np.where(df["minutes_avg_last_3"].fillna(0) > 0, 1, 0)
     df = df.drop(columns=["minutes_filled"])
@@ -75,63 +65,46 @@ def minutes_avg_and_trend(df):
 
 
 def points_p90(df):
-    df["points_p90_last_5"] = (
-        (df["points_avg_last_5"] / df["minutes_avg_last_5"]) * 90
-    )
-    df["points_p90_last_5"] = df["points_p90_last_5"].replace([np.inf, -np.inf], np.nan).fillna(0)  
-
-    df["points_p90_last_3"] = (
-    (df["points_avg_last_3"] / df["minutes_avg_last_3"]) * 90
-)
-    df["points_p90_last_3"] = df["points_p90_last_3"].replace([np.inf, -np.inf], np.nan).fillna(0)  
-
+    for w in (3, 5):
+        mins = df.groupby("player_id")["minutes"].transform(
+            lambda x: x.rolling(w, min_periods=1).sum())
+        pts = df.groupby("player_id")["points"].transform(
+            lambda x: x.rolling(w, min_periods=1).sum())
+        df[f"points_p90_last_{w}"] = np.where(mins >= 45, pts / mins * 90, np.nan)
     return df
 
 # Effizient messen in dem man den avg. * 90 rechnet
 
 def p90(df, efficiency_cols):
+    mins = df.groupby("player_id")["minutes"].transform(
+        lambda x: x.rolling(3, min_periods=1).sum())
 
     for col in efficiency_cols:
-        df[f"{col}_filled"] = df[col].fillna(0)
+        total = df.groupby("player_id")[col].transform(
+            lambda x: x.rolling(3, min_periods=1).sum())
+        df[f"{col}_p90_last_3"] = np.where(mins >= 45, total / mins * 90, np.nan)
 
-        df[f"{col}_avg_last_3"] = (
-            df.groupby(["player_id", "season"])[f"{col}_filled"]
-            .shift(1)
-            .rolling(window=3)
-            .mean()
-        )
-
-        df[f"{col}_p90_last_3"] = df[f"{col}_avg_last_3"] / df["minutes_avg_last_3"] * 90
-        df[f"{col}_p90_last_3"] = df[f"{col}_p90_last_3"].replace([np.inf, -np.inf], np.nan).fillna(0)  
-        
-        df = df.drop(columns=[f"{col}_filled", f"{col}_avg_last_3"])
-    
     return df
-
-
 
 # Wahrscheinlichkeitsmetriken 
 def ratios(df, ratio_pairs):
-    for succes_col, total_col in ratio_pairs:
-        df[f"{succes_col}_filled"] = df[succes_col].fillna(0)
-        df[f"{total_col}_filled"] = df[total_col].fillna(0)
+    for pair in ratio_pairs:
+        succes_col = pair[0]
+        total_col = pair[1]
+
+        df[f"{succes_col}_filled"] = df[succes_col]
+        df[f"{total_col}_filled"] = df[total_col]
 
         df[f"{succes_col}_sum_last_3"] = (
-        df.groupby(["player_id", "season"])[f"{succes_col}_filled"]        
-        .shift(1)
-        .rolling(window=3)
-        .sum()
+        df.groupby(["player_id"])[f"{succes_col}_filled"].transform(lambda x: x.rolling(3, min_periods=1).sum())   
         )
 
         df[f"{total_col}_sum_last_3"] = (
-        df.groupby(["player_id", "season"])[f"{total_col}_filled"]        
-        .shift(1)
-        .rolling(window=3)
-        .sum()
+        df.groupby(["player_id"])[f"{total_col}_filled"].transform(lambda x: x.rolling(3, min_periods=1).sum())
         )
 
         df[f"{succes_col}_ratio_last_3"] = df[f"{succes_col}_sum_last_3"] / df[f"{total_col}_sum_last_3"]
-        df[f"{succes_col}_ratio_last_3"] = df[f"{succes_col}_ratio_last_3"].replace([np.inf, -np.inf], np.nan).fillna(0)
+        df[f"{succes_col}_ratio_last_3"] = df[f"{succes_col}_ratio_last_3"].replace([np.inf, -np.inf], np.nan)
 
         df = df.drop(columns=[
             f"{succes_col}_filled",
@@ -142,21 +115,44 @@ def ratios(df, ratio_pairs):
 
     return df
 
+def smoothed_ratios(df, ratio_pairs, default_window=3, smoothing_weight=5):
+    for ratio in ratio_pairs:
+        succes_col = ratio[0]
+        total_col = ratio[1]
+        window = ratio[2] if len(ratio) == 3 else default_window
+
+        global_ratio = df[succes_col].sum() / df[total_col].sum()
+        if pd.isna(global_ratio) or np.isinf(global_ratio):
+            global_ratio = 0.0
+
+        prior_succes = global_ratio * smoothing_weight
+        prior_total = smoothing_weight
+
+        sum_succ = df.groupby("player_id")[succes_col].transform(
+            lambda x: x.rolling(window, min_periods=1).sum()
+        )
+        sum_tot = df.groupby("player_id")[total_col].transform(
+            lambda x: x.rolling(window, min_periods=1).sum()
+        )
+
+        ratio_name = f"smoothed_{succes_col}_ratio_last_{window}"
+        df[ratio_name] = (sum_succ + prior_succes) / (sum_tot + prior_total)
+    return df
+
 # Form von Spieler und Team berechnen
 
 
 def form_trends(df, form_trend_cols):
     for col in form_trend_cols:
-        df[f"{col}_filled"] = df[col].fillna(0)
+        df[f"{col}_filled"] = df[col]
         
         df[f"{col}_avg_last_3"] = (
-            df.groupby(["player_id", "season"])[f"{col}_filled"]
-            .shift(1).rolling(window=3).mean()
+            df.groupby(["player_id"])[f"{col}_filled"].transform(lambda x: x.rolling(3, min_periods=1).mean())
         )
         
         df[f"{col}_avg_last_5"] = (
-            df.groupby(["player_id", "season"])[f"{col}_filled"]
-            .shift(1).rolling(window=5).mean()
+            df.groupby(["player_id"])[f"{col}_filled"]
+            .transform(lambda x: x.rolling(5, min_periods=1).mean())
         )
         
         df[f"{col}_trend"] = df[f"{col}_avg_last_3"] - df[f"{col}_avg_last_5"]
@@ -172,28 +168,62 @@ def sums(df, sum_cols):
 
     for col in current_sum_cols:
         df[f"{col}_sum_last_5"] = (
-            df.groupby(["player_id", "season"])[col]
-            .shift(1).rolling(window=5).sum().fillna(0)
+            df.groupby(["player_id"])[col]
+            .transform(lambda x: x.fillna(0).rolling(5, min_periods=1).sum())
         )
         
     df = df.drop(columns=["cards_total"])
     return df
+
 def lag_features(df, lag_cols, lag=1):
     for col in lag_cols:
         if col not in df.columns:
             continue
 
-        lagged = df.groupby(["player_id", "season"])[col].shift(lag)
+        lagged = df.groupby(["player_id"])[col].shift(lag)
 
-        df[f"{col}_lag_{lag}"] = pd.to_numeric(lagged).fillna(0)
+        df[f"{col}_lag_{lag}"] = pd.to_numeric(lagged)
 
     return df
 
+def map_status(df):
+    status_categories = [
+        "startelf",
+        "eingewechselt",
+        "bank",
+        "fit_nicht_gespielt",
+        "nicht_beruecksichtigt",
+        "angeschlagen",
+        "aufbautraining",
+        "verletzt",
+        "gelb_gesperrt",
+        "gelbrot_gesperrt",
+        "rot_gesperrt",
+        "unbekannt",
+    ]
+
+    df["status"] = df["status"].fillna("unbekannt")
+    df.loc[~df["status"].isin(status_categories), "status"] = "unbekannt"
+
+    df["status"] = pd.Categorical(df["status"], categories=status_categories)
+
+    status_dummies = pd.get_dummies(df["status"], prefix="status")
+    df = pd.concat([df.drop(columns=["status"]), status_dummies], axis=1)
+
+    return df
+
+def new_player_features(df):
+    played = df["minutes"].fillna(0) > 0
+    df["games_played"] = played.groupby(df["player_id"]).cumsum().clip(upper=15)
+    df["is_debut"] = (df["games_played"] <= 1).astype(int)
+
+    return df
 
 def create_target_variable(df):
     df["target_points"] = df.groupby(["player_id", "season"])["points"].shift(-1)
 
     return df
+
 
 #---------------------------------------------------------------------------------------------------------------------------------
 # Pipeline playerstats
@@ -214,16 +244,16 @@ efficiency_cols_field = [
 ]
 
 ratio_pairs_field = [
-    ("erfolgreiche_paesse", "paesse_gesamt"), 
-    ("gewonnene_zweikaempfe", "gewonnene_zweikaempfe_gesamt"),
-    ("gewonnene_luftkaempfe", "gewonnene_luftkaempfe_gesamt"),
-    ("erfolgreiche_tacklings", "tacklings_gesamt"),
-    ("erfolgreiche_dribblings", "dribblings_gesamt"),
-    ("schussgenauigkeit", "schussgenauigkeit_gesamt")
+    ("erfolgreiche_paesse", "paesse_gesamt", 3), 
+    ("gewonnene_zweikaempfe", "gewonnene_zweikaempfe_gesamt", 5),
+    ("gewonnene_luftkaempfe", "gewonnene_luftkaempfe_gesamt", 8),
+    ("erfolgreiche_tacklings", "tacklings_gesamt", 5),
+    ("erfolgreiche_dribblings", "dribblings_gesamt" , 8),
+    ("schussgenauigkeit", "schussgenauigkeit_gesamt", 10)
 ]
 
 
-form_trend_cols = [
+form_trend_cols_field = [
     "goals_own_team", 
     "goals_enemy_team", 
     "match_result", 
@@ -236,6 +266,7 @@ sum_cols_field = ["goals", "assists"]
 
 lag_cols_field = [
     "points",
+    "minutes",
     "red_cards",
     "yellow_red_cards",
     "yellow_cards",
@@ -253,13 +284,13 @@ efficiency_cols_gk = [
 ]
 
 ratio_pairs_gk = [
-    ("abgewehrte_schuesse", "abgewehrte_schuesse_gesamt"),
-    ("strafraum_beherrschung", "strafraum_beherrschung_gesamt"),
-    ("abgewehrte_elfmeter", "elfmeter_gesamt"),
-    ("grosschancen_pariert", "grosschancen_gesamt")
+    ("abgewehrte_schuesse", "abgewehrte_schuesse_gesamt", 3),
+    ("strafraum_beherrschung", "strafraum_beherrschung_gesamt", 5),
+    ("abgewehrte_elfmeter", "elfmeter_gesamt", 10),
+    ("grosschancen_pariert", "grosschancen_gesamt", 5)
 ]
 
-form_trend_cols = [
+form_trend_cols_gk = [
     "goals_own_team", 
     "goals_enemy_team", 
     "match_result", 
@@ -273,6 +304,7 @@ sum_cols_gk = [
 
 lag_cols_gk = [
     "points",
+    "minutes",
     "red_cards",
     "yellow_red_cards",
     "yellow_cards",
@@ -281,26 +313,31 @@ lag_cols_gk = [
 
 
 def process_data(df): 
-    if df["position"].iloc[0] != 1:
-        df = points_avg_and_trend(df)
-        df = minutes_avg_and_trend(df)
-        df = points_p90(df)
+    df = df.sort_values(["player_id", "season", "matchday"]).reset_index(drop=True)
+
+    df = points_avg_and_trend(df)
+    df = minutes_avg_and_trend(df)
+    df = points_p90(df)
+    df = create_target_variable(df)
+    df = map_status(df)
+    df = new_player_features(df)
+
+    is_field_player = df["position"].isin([2,3,4]).all()
+
+    if is_field_player:
+        df = form_trends(df, form_trend_cols_field)
         df = p90(df, efficiency_cols_field)
-        df = ratios(df, ratio_pairs_field)
-        df = form_trends(df, form_trend_cols)
+        # df = ratios(df, ratio_pairs_field) 
+        df = smoothed_ratios(df, ratio_pairs_field)
         df = sums(df, sum_cols_field)
         df = lag_features(df, lag_cols_field)
-        df = create_target_variable(df)
     else: 
-        df = points_avg_and_trend(df)
-        df = minutes_avg_and_trend(df)
-        df = points_p90(df)
+        df = form_trends(df, form_trend_cols_gk)
         df = p90(df, efficiency_cols_gk)
-        df = ratios(df, ratio_pairs_gk)
-        df = form_trends(df, form_trend_cols)
+        # df = ratios(df, ratio_pairs_gk)
+        df = smoothed_ratios(df, ratio_pairs_gk)
         df = sums(df, sum_cols_gk)
         df = lag_features(df, lag_cols_gk)
-        df = create_target_variable(df)
 
     return df
 
@@ -350,16 +387,16 @@ def get_final_ml_data(df, is_training=True):
         df,
         df_team_stats,
         how="left",
-        left_on=["season", "matchday", "opponent_name"],
+        left_on=["season", "matchday", "opponent_1"],
         right_on=["season", "matchday", "team_name"],
         suffixes=("", "_opponent"),
     )
 
     drop_cols_field = [
         "id",
-        "player_id",
-        "team_name",
-        "opponent_name",
+        #"player_id",    # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        #"team_name",    # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        #"opponent_name", # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
         "date",
         "points",
         "minutes",
@@ -373,7 +410,6 @@ def get_final_ml_data(df, is_training=True):
         "red_cards",
         "ligaInsider_points",
         "grade",
-        "status",
         "erfolgreiche_paesse",
         "paesse_gesamt",
         "gewonnene_zweikaempfe",
@@ -411,9 +447,9 @@ def get_final_ml_data(df, is_training=True):
         "id_opponent",
         "id_team",
         "id",
-        "player_id",
-        "team_name",
-        "opponent_name",
+        #"player_id",        # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        #"team_name",        # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        #"opponent_name",    # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
         "date",
         "points",
         "minutes",
@@ -427,7 +463,6 @@ def get_final_ml_data(df, is_training=True):
         "red_cards",
         "ligaInsider_points",
         "grade",
-        "status",
         "team_name_team",
         "team_name_opponent",
         "abgewehrte_schuesse",
@@ -466,3 +501,14 @@ def split_by_position(df):
     df_off = df_off.drop(columns=["position"])
 
     return df_def, df_mid, df_off
+
+
+
+
+# Üerlegen / Testen: Walk-Forward-Validierung: CV auf Spieltagsebene umbauen.
+# Overfitting im GridSearch: Risiko von zu starkem Overfitting auf kleine 
+#         Blätter durch riesiges Grid. Ggf. mit early_stopping_rounds arbeiten.
+
+# minutes zu lag cols ergänzen, sums ergänzen für z.B. Tore, Minuten, pässe usw. 
+#
+# Ggf. Wettquoten als Feature ergänzen, LigaInsider liefert unter Spieltagen irgendwas in die Richtung (vorher schauen was genau das ist)

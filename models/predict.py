@@ -10,8 +10,7 @@ MODEL_DIR = Path(__file__).resolve().parent
 model_def = joblib.load(MODEL_DIR / "model_Abwehr_best.pkl")
 model_mf = joblib.load(MODEL_DIR / "model_Mittelfeld_best.pkl")
 model_off = joblib.load(MODEL_DIR / "model_Angriff_best.pkl")
-model_gk = joblib.load(MODEL_DIR / "model_gk.pkl")
-
+model_gk = joblib.load(MODEL_DIR / "model_gk_best.pkl")
 
 def get_features(players):
     player_ids_field = [str(player["player_id"]) for player in players if int(player["player_pos"]) != 1]
@@ -49,6 +48,7 @@ def get_features(players):
         df_field = df_field.sort_values(by=['player_id', 'season', 'matchday'], ascending=[True, True, True])
 
 
+
     if not df_gk.empty:
         df_gk = df_gk.sort_values(by=['player_id', 'season', 'matchday'], ascending=[True, False, False])
         df_gk = df_gk.groupby('player_id').head(10).reset_index(drop=True)
@@ -65,14 +65,21 @@ def get_features(players):
 
 def predict(df_features, position):
 
+    df_features = df_features.fillna(0)
+
     if position == 1:
-        predictions = model_gk.predict(df_features)
+        model = model_gk
     elif position == 2:
-        predictions = model_def.predict(df_features)
+        model = model_def
     elif position == 3:
-       predictions = model_mf.predict(df_features)
+       model = model_mf
     else:
-        predictions = model_off.predict(df_features) 
+        model = model_off
+
+    expected_cols = model.feature_names_in_
+    df_features = df_features.reindex(columns=expected_cols, fill_value=0)
+
+    predictions = model.predict(df_features)
 
     return predictions
 
@@ -91,7 +98,7 @@ def get_all_predictions(players):
         id_col = "kickbase_id" if "kickbase_id" in df.columns else "player_id"
         cur_ids = df[id_col].tolist()
 
-        df_predict = df.drop(columns=["player_id", "kickbase_id", "season", "target_points"], errors="ignore")
+        df_predict = df.drop(columns=["player_id", "kickbase_id", "season", "target_points", "matchday"], errors="ignore")
 
         predictions = predict(df_predict, position)
 

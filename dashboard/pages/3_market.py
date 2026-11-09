@@ -53,7 +53,11 @@ st.set_page_config(page_title="Transfer Market", layout="wide")
 
 if "market" not in st.session_state:
     market = fetch_market()
-    market_data = market["market"]
+
+    if market is None:
+        st.error("Failed to fetch market data. Please try again later.")
+    else: 
+        market_data = market["market"]
 
     df_market = get_table("market", market_data)    
     st.session_state["market"] = df_market
@@ -64,7 +68,7 @@ col1, col2 = st.columns([1,2])
 
 with col1:
     st.slider(label="Default Overpay in %", min_value=0, max_value=100, 
-          value=10, step=1, key="overpay_slider", width=300)
+          value=1, step=1, key="overpay_slider", width=300)
 
 with col2:
     button_refresh = st.button("Refresh Market")
@@ -164,3 +168,7 @@ if button_bids:
 # optimizer sollte Deadline kennen -> nur Spieler vor der Deadline übergeben
 #
 # avg. Puntke anzeigen
+#
+# next opponents aktualisieren wenn bereits aktueller Spieltag läuft, da die Punkte für den aktuell angezeigten nicht mehr zählen
+#
+# manual bid automatically fill with the current mv when clicking on it, the user now can change the value 

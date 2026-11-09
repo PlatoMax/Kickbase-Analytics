@@ -158,6 +158,7 @@ def get_kickbase_deadline(season, skip_started_matchday=True):
     
     return {
         "matchday": target_md,
-        "deadline_utc": deadline_utc
+        "deadline_utc": deadline_utc,
+        "is_ongoing": md_already_started
     }
         

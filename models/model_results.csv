@@ -1,0 +1,10 @@
+position,date,Grid_Search,n_iter,best_mae,best_rmse,n_estimators,learning_rate,max_depth,subsample,min_child_weight,colsample_bytree,top_features
+Abwehr,2026-09-24 08:58,True,,40.3680771790605,55.486834870915416,700,0.01,3,0.7,1,1.0,"points_avg_last_3, status_startelf, points_avg_last_5"
+Mittelfeld,2026-09-24 09:12,True,,46.499527560724445,63.81990100520959,300,0.01,3,0.7,1,1.0,"ligaInsider_points_avg_last_3, ligaInsider_points_avg_last_5, points_avg_last_5"
+Angriff,2026-09-24 09:24,True,,44.84485968271891,62.31751138249333,300,0.01,3,0.9,1,1.0,"points_avg_last_3, ligaInsider_points_avg_last_3, Tabellenplatz"
+Torwart,2026-09-24 09:32,True,,24.92824543491346,42.67930724798914,100,0.05,3,0.9,1,1.0,"status_startelf, grade_avg_last_3, abgewehrte_schuesse_ratio_last_3"
+
+Abwehr,2026-10-30 07:38,True,100.0,39.70404901469762,55.16238576982583,100,0.05,3,0.7,20,0.5,"ligaInsider_points_avg_last_3, points_avg_last_3, points_avg_last_5"
+Mittelfeld,2026-10-30 07:42,True,100.0,43.71650671857504,61.71322846750254,100,0.05,3,0.7,20,0.5,"ligaInsider_points_avg_last_3, ligaInsider_points_avg_last_5, points_avg_last_3"
+Angriff,2026-10-30 07:46,True,100.0,43.17357628538944,62.81704112715512,500,0.01,5,0.7,20,0.5,"points_avg_last_3, ligaInsider_points_avg_last_3, ligaInsider_points_avg_last_5"
+Torwart,2026-10-30 07:50,True,100.0,23.389304923382493,41.74863408683979,500,0.01,2,0.8,10,0.7,"status_startelf, grade_avg_last_3, points_p90_last_3"
