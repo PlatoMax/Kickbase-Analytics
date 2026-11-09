@@ -2,16 +2,32 @@ import time
 from datetime import datetime, timedelta
 from scrape.getIDs import *
 from scrape.config import API_URL
-from scrape.fetch import login, get_season
+from scrape.fetch import login, get_season, get_kickbase_deadline
 from scrape.scrape_stats import *
 from database import *
 from models.predict import get_all_predictions
 from optimizer import run_optimizer
 import random
 
+INCLUDE_LAST_SEASON = False # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
+
 total_entries_databank = 0 # just for fun um Anzahl der Einträge in die Datenbank mitzuzählen
 
 create_tables()
+token, league_id, cookies = login()
+
+kb_session = requests.Session()
+kb_session.headers.update({
+    "tkn": token,
+    "Accept": "application/json",
+})
+kb_session.cookies.update(cookies)
+
+li_session = requests.Session()
+li_session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+})
+
 
 def extract_and_save_teamstats(season): #immer als Kickbase Season angeben!
     clear_teams_stats_one_season(season)
@@ -22,13 +38,11 @@ def extract_and_save_teamstats(season): #immer als Kickbase Season angeben!
     if not clean_data:
         return 0
     
-    
-    first_matchday = min_matchday(clean_data)
     last_matchday = clean_data[-1][0]["matchday"]
 
     entries_saved = 0 
 
-    for i in range(first_matchday, last_matchday + 1):
+    for i in range(1, last_matchday + 1):
         cal_table = calculate_table(clean_data, i)
         table = create_table(cal_table)
         next_opponents = get_next_opponents(matchday_data, i)
@@ -41,16 +55,16 @@ def extract_and_save_teamstats(season): #immer als Kickbase Season angeben!
     print("succesfully saved team_stats für season, ", season)
     return entries_saved
 
-def extract_and_save_playerstats(player, season):
+def extract_and_save_playerstats(player, season, kb_session, li_session):
     db_id = player[0]
     player_id = player[1]
     name = player[2]
     position = int(player[5])
     link = player[6]
     
-    stats_kickbase = get_player_performance_kb(token, cookies, player_id, season)
-    stats_ligainsider = scrape_player_stats_LI(name, position, season, link)
-    goals_grades= get_player_goals_and_grades(name, season, link)
+    stats_kickbase = get_player_performance_kb( player_id, season, kb_session)
+    stats_ligainsider = scrape_player_stats_LI(name, position, season, link, li_session)
+    goals_grades= get_player_goals_and_grades(name, season, link, li_session)
 
     if not stats_kickbase and not stats_ligainsider:
         return 0
@@ -97,10 +111,6 @@ def get_current_kickbase_matchday(token, cookies, player_id, target_season):
 # Daten holen und in den Datenbanken speichern
 start_time = time.perf_counter() # Just for fun um die Dauer zu sehen
 
-token, league_id, cookies = login()
-
-create_tables()
-
 # teams:
 li_teams = fetch_ligainsider_teams()
 kb_teams = get_all_teams_kickbase(token, cookies)
@@ -126,8 +136,10 @@ last_start_year = get_season(last=True)
 current_season = f"{cur_start_year}/{cur_start_year + 1}"
 last_season = f"{last_start_year}/{last_start_year + 1}"
 
-# total_entries_databank += extract_and_save_teamstats(last_season)   # mit last_season muss nur einmalig aufgerufen werden, danach überflüssig
 total_entries_databank += extract_and_save_teamstats(current_season)
+
+if INCLUDE_LAST_SEASON:
+    total_entries_databank += extract_and_save_teamstats(last_season)   
 
 
 # Players
@@ -154,44 +166,57 @@ latest_matchday_db = cursor.fetchone()
 latest_matchday_db = latest_matchday_db[0] if latest_matchday_db[0] is not None else 0
 conn.close()
 
-random_player_id = players[0][1]
-latest_matchday_kickbase = get_current_kickbase_matchday(token, cookies, random_player_id, current_season) # hier nochmal genauer schauen ob das zukunftssicher ist
+schedule_info = get_kickbase_deadline(cur_start_year, skip_started_matchday=False)
 
-print(f"latest db: {latest_matchday_db}, latest kb: {latest_matchday_kickbase}")
+if not schedule_info:
+    current_kb_matchday = 0
+    is_matchday_ongoing = False
+else:
+    current_kb_matchday = schedule_info["matchday"]
+    is_matchday_ongoing = schedule_info["is_ongoing"]
+
+
+print(f"latest db: {latest_matchday_db}, latest kb: {current_kb_matchday}, is ongoing: {is_matchday_ongoing}")
 max_retries = 5
-if latest_matchday_db < int(latest_matchday_kickbase):
-    for i, player in enumerate(players): 
 
-        if i % 50 == 0 and i != 0:
-            pause = random.uniform(40, 100)
-            print(f"Kaffeepause! Skript pausiert für {pause:.0f} Sekunden...")
-            time.sleep(pause)
+next_coffe_break = random.randint(30,50)
+scrape_count = 0
 
-        for attempt in range(max_retries):
-            try:
-                entries_current = extract_and_save_playerstats(player, current_season)
-                time.sleep(random.uniform(1, 2))
-                entries_last = extract_and_save_playerstats(player, last_season) # nur einmal mit last_season runnen, danach überflüssig
-                
-                total_entries_databank += entries_current # + entires_last sofern entires_last nicht auskommentiert wurde
-                # total_entries_databank += entries_last # + entires_last sofern entires_last nicht auskommentiert wurde
-                
-                print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
-                break # break gilt für attempt Schleife
-            except Exception as e: 
-                print(f"Warnung bei {player[2]} (Versuch {attempt + 1}/{max_retries}): {e}")    
-                
-                if attempt < max_retries - 1:
-                    sleep_time = random.uniform(5, 10) * (2 ** attempt)
-                    print(f"Warte {sleep_time} Sekunden, bevor es nochmal versucht wird...")
-                    time.sleep(sleep_time)
-                else:
-                    print(f"\033[91m Fehler: {player[2]} endgültig übersprungen nach {max_retries} Versuchen. \033[0m ")   
+for i, player in enumerate(players): 
 
-        print(f"{i + 1} von {len(players)} Spieler abgeschlossen")
-        time.sleep(random.uniform(2,4))            
-else: 
-    print("Database ist auf dem neusten Stand")
+    if scrape_count >= next_coffe_break:  
+        pause = random.uniform(20, 60)
+        next_coffe_break = scrape_count + random.randint(30,50)
+        print(f"Kaffeepause! Skript pausiert für {pause:.0f} Sekunden...")
+        time.sleep(pause)
+
+    for attempt in range(max_retries):
+        try:
+            entries_current = extract_and_save_playerstats(player, current_season, kb_session, li_session)
+            total_entries_databank += entries_current 
+            scrape_count += 1
+
+            if INCLUDE_LAST_SEASON:
+                time.sleep(random.uniform(0.5, 1.5)) 
+                entries_last = extract_and_save_playerstats(player, last_season, kb_session, li_session) 
+                total_entries_databank += entries_last 
+                scrape_count += 1
+
+            print(f"{player[2]} erfolgreich verarbeitet! (+{entries_current} Einträge)") 
+            break # break gilt für attempt Schleife
+        except Exception as e: 
+            print(f"Warnung bei {player[2]} (Versuch {attempt + 1}/{max_retries}): {e}")    
+            
+            if attempt < max_retries - 1:
+                sleep_time = random.uniform(5, 10) * (2 ** attempt)
+                print(f"Warte {sleep_time} Sekunden, bevor es nochmal versucht wird...")
+                time.sleep(sleep_time)
+            else:
+                print(f"\033[91m Fehler: {player[2]} endgültig übersprungen nach {max_retries} Versuchen. \033[0m ")   
+
+    print(f"{i + 1} von {len(players)} Spieler abgeschlossen")
+    time.sleep(random.uniform(1.5,3.5))            
+
 
 end_time = time.perf_counter()
 dauer_in_minuten = (end_time - start_time) / 60
@@ -205,5 +230,9 @@ print(f"Fertig! Es wurden {total_entries_databank} Einträge in {dauer_in_minute
 # Lösung finden um das Updaten zu beschleunigen, 
 #   Idee: gucken was der letzte Matchday in der Datenbank ist, aktuellen holen und für alle Spiele
 #    die dazwischen liegen nur scrapen für Spieler die gespielt haben 
+#   in open Liga die Anstoßzeiten holen und Teams die noch nicht gespielt haben nicht scrapen
 #   -> großteil der Spieler kann dann automatisch auf 0 Punkte und 0 Spielzeit gesetzt werden
+#   Idee: nur Kickbase anfragen und dort prüfen, rate limits hier vermutlich höher als bei LI
+#   Idee: gucken ob Kickbase eine API hat mit diesen Informationen
+#   Idee: suchen nach anderer Möglichkeit über anderen Anbieter
 #   noch überlegen welche Nachteile das haben könnte

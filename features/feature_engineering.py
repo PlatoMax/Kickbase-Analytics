@@ -394,9 +394,9 @@ def get_final_ml_data(df, is_training=True):
 
     drop_cols_field = [
         "id",
-        #"player_id",    # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
-        #"team_name",    # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
-        #"opponent_name", # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        "player_id",    # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        "team_name",    # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        "opponent_name", # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
         "date",
         "points",
         "minutes",
@@ -447,9 +447,9 @@ def get_final_ml_data(df, is_training=True):
         "id_opponent",
         "id_team",
         "id",
-        #"player_id",        # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
-        #"team_name",        # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
-        #"opponent_name",    # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        "player_id",        # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        "team_name",        # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
+        "opponent_name",    # Hilfreich beim überprüfen der Daten, in dem Fall auskommentieren
         "date",
         "points",
         "minutes",

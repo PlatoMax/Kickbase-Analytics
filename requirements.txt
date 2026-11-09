@@ -1,10 +1,11 @@
 requests
-beautifulsoup4
+beautifulsoup4 
 python-dotenv
 rapidfuzz
 pandas
 numpy
 xgboost
 scikit-learn
-pulp
+PuLP==3.3.1
 streamlit
+fastapi

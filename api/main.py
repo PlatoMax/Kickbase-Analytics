@@ -4,22 +4,44 @@ from scrape.scrape_stats import *
 from models.predict import get_all_predictions
 from optimizer import run_optimizer
 from scrape.config import *
-
+from datetime import datetime, timezone
 
 app = FastAPI()
 
-LEAGUE_ID = None
-TOKEN = None
-COOKIES = None
+TOKEN, LEAGUE_ID, COOKIES = login()
 
+kb_session = requests.Session()
+kb_session.headers.update({
+    "tkn": TOKEN,
+    "Accept": "application/json",
+})
+kb_session.cookies.update(COOKIES)
 
-def get_login_info():
+def filter_by_deadline(market, squad, deadline):
+    predictions = get_all_predictions(market + squad)
+    now = datetime.now(timezone.utc)
 
-    global TOKEN, LEAGUE_ID, COOKIES
-    if TOKEN is None or LEAGUE_ID is None or COOKIES is None:
-        TOKEN, LEAGUE_ID, COOKIES = login()
-    return LEAGUE_ID, TOKEN, COOKIES
+    hours_until_deadline = (
+        (deadline["deadline_utc"] - now).total_seconds() / 3600 
+        if deadline and deadline.get("deadline_utc") 
+        else None
+    )
 
+    if hours_until_deadline is not None:
+        market_copy = [
+            p for p in market 
+            if p.get("expires") is not None and p["expires"] < hours_until_deadline
+        ]
+    else:
+        market_copy = market.copy()
+
+    valid_ids = {str(p["player_id"]) for p in market_copy + squad}
+    predictions_copy = {
+        pid: pts for pid, pts in predictions.items() 
+        if pid in valid_ids
+    }
+    
+    return market_copy, predictions_copy, predictions
 
 #----------------------------------------------------------------------------------------------
 # Tab 1: Overview
@@ -28,9 +50,8 @@ def get_login_info():
 
 @app.get("/api/kpi")
 def get_kpi():
-    league_id, token, cookies = get_login_info()
-    budget = get_budget(league_id, token, cookies)
-    squad = get_squad(league_id, token, cookies)
+    budget = get_budget(LEAGUE_ID, TOKEN, COOKIES)
+    squad = get_squad(LEAGUE_ID, TOKEN, COOKIES)
     expected_points = int(sum(get_all_predictions(squad).values()))
     return {
         "budget": budget,
@@ -39,8 +60,7 @@ def get_kpi():
 
 @app.get("/api/leaderboard")
 def get_leaderboard_endpoint():
-    league_id, token, cookies = get_login_info()
-    leaderboard = get_leaderboard(league_id, token, cookies)
+    leaderboard = get_leaderboard(LEAGUE_ID, TOKEN, COOKIES)
     return {
         "leaderboard": leaderboard
     }
@@ -52,12 +72,14 @@ def get_deadline():
 
     if not deadline_data:
         return {"matchday": None,
-                 "deadline": None
+                 "deadline": None,
+                    "is_ongoing": None
                  }
     
     return {
         "matchday": deadline_data["matchday"],
-        "deadline": deadline_data["deadline_utc"]
+        "deadline": deadline_data["deadline_utc"],
+        "is_ongoing": deadline_data["is_ongoing"]
     }
 
 @app.get("/api/matchups")
@@ -81,17 +103,24 @@ def get_matchups():
 
 
 @app.get("/api/optimized_team")
-def optimize_team():
+def optimize_team(only_own_players: bool = False):
+    """
+    Optimize the team by finding the best combination of players to buy, sell, and hold.
+    """
+    squad = get_squad(LEAGUE_ID, TOKEN, COOKIES)
+    
+    if only_own_players:
+        market = []
+    else:
+        market = get_players_on_market(LEAGUE_ID, session=kb_session)
 
-    league_id, token, cookies = get_login_info()
+    budget_before = get_budget(LEAGUE_ID, TOKEN, COOKIES)
 
-    squad = get_squad(league_id, token, cookies)
-    market = get_players_on_market(league_id, token, cookies)
-    budget_before = get_budget(league_id, token, cookies)
 
-    players_for_prediction = market + squad
-    predictions = get_all_predictions(players_for_prediction)
-    optimal_team = run_optimizer(market, squad, budget_before, predictions)
+    deadline = get_kickbase_deadline(get_season())
+
+    market_copy, predictions_copy, _ = filter_by_deadline(market, squad, deadline)
+    optimal_team = run_optimizer(market_copy, squad, budget_before, predictions_copy)
 
     sum_sells = sum(player["player_price"] for player in optimal_team["sell"])
     sum_buys = sum(player["player_price"] for player in optimal_team["buy"])
@@ -102,6 +131,7 @@ def optimize_team():
         if action in optimal_team:
             for player in optimal_team[action]:
                 player["action"] = action
+                player.setdefault("expires", None)
 
     buy_and_hold_players = optimal_team.get("buy", []) + optimal_team.get("hold", [])
     expected_points = int(sum(player.get("points", 0) for player in buy_and_hold_players))
@@ -117,9 +147,8 @@ def optimize_team():
 
 @app.post("/api/sell_player/{player_id}")
 def sell_player(player_id):
-    league_id, token, cookies = get_login_info()
-    url = f"{API_URL}/leagues/{league_id}/market/{player_id}/sell"
-    response = requests.post(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies)
+    url = f"{API_URL}/leagues/{LEAGUE_ID}/market/{player_id}/sell"
+    response = requests.post(url, headers={"tkn": TOKEN, "Accept": "application/json"}, cookies=COOKIES)
 
     if response.status_code == 200:
         return {"status": "success"}
@@ -132,20 +161,20 @@ def sell_player(player_id):
 
 @app.get("/api/market")
 def get_transfer_market():
-    league_id, token, cookies = get_login_info()
-
-    market = get_players_on_market(league_id, token, cookies)
-    squad = get_squad(league_id, token, cookies)
-    budget = get_budget(league_id, token, cookies)
-
-    predictions = get_all_predictions(market + squad)
-    optimized = run_optimizer(market, squad, budget, predictions)
-    buys_market = [str(player["player_id"]) for player in optimized.get("buy", [])]
 
     matchdays = get_data_matchdays(get_season())
     deadline = get_kickbase_deadline(get_season())
     current_md = deadline["matchday"] if deadline else None
     opponents = get_next_opponents(matchdays, current_md)
+
+    market = get_players_on_market(LEAGUE_ID, session=kb_session)
+    squad = get_squad(LEAGUE_ID, TOKEN, COOKIES)
+    budget = get_budget(LEAGUE_ID, TOKEN, COOKIES)
+
+    market_copy, predictions_copy, predictions = filter_by_deadline(market, squad, deadline)
+
+    optimized = run_optimizer(market_copy, squad, budget, predictions_copy)
+    buys_market = [str(player["player_id"]) for player in optimized.get("buy", [])]
 
     for player in market:
         player_id = str(player["player_id"])
@@ -158,7 +187,7 @@ def get_transfer_market():
         team_name = KICKBASE_ID_TO_NAME.get(team_id)
 
         if not team_name:
-            player_info = get_player_info(token, cookies, player_id)
+            player_info = get_player_info(TOKEN, COOKIES, player_id)
             team_name = player_info.get("team_name")
             if team_name:
                 add_if_team_mapping_dont_exists(team_id, team_name)
@@ -178,10 +207,9 @@ def get_transfer_market():
 
 @app.post("/api/buy_player/{player_id}/{price}")
 def buy_player(player_id, price):
-    league_id, token, cookies = get_login_info()
-    url = f"{API_URL}/leagues/{league_id}/market/{player_id}/offers"
+    url = f"{API_URL}/leagues/{LEAGUE_ID}/market/{player_id}/offers"
     payload = {"price": int(price)}
-    response = requests.post(url, headers={"tkn": token, "Accept": "application/json"}, cookies=cookies, json=payload)
+    response = requests.post(url, headers={"tkn": TOKEN, "Accept": "application/json"}, cookies=COOKIES, json=payload)
 
     if response.status_code == 200:
         return {"status": "success", "message": f"Gebot für {player_id} platziert."}
