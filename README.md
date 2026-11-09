@@ -1,6 +1,3 @@
-Hier ist die sauber formatierte und korrigierte Copy-Paste-Version für deine `README.md`. Die zerschossenen Formatierungen (Listen, Code-Blöcke, Überschriften) wurden repariert, sodass sie auf GitHub oder in deinem Editor optimal gerendert wird:
-
-
 # Kickbase-Analytics
 
 Kickbase-Analytics unterstützt datenbasierte Kauf- und Verkaufsentscheidungen im Kickbase-Management.  
